@@ -32,8 +32,13 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Users\n")
+	http.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Create a user.")
+	})
+
+	http.HandleFunc("GET /api/users/{userId}", func(w http.ResponseWriter, r *http.Request) {
+		userId := r.PathValue("userId")
+		fmt.Fprintf(w, "Find a user with the specified ID (%s).\n", userId)
 	})
 
 	http.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
