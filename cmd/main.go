@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"x-clone-backend/db"
 )
@@ -21,15 +22,15 @@ func main() {
 		fmt.Fprintf(w, "Hello, World\n")
 	})
 
-	http.HandleFunc("/api/posts", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			fmt.Fprintf(w, "Received Post request for posts.\n")
-		case http.MethodDelete:
-			fmt.Fprintf(w, "Received Delete request for posts.\n")
-		default:
-			http.Error(w, fmt.Sprintln("/api/posts supports only Post and Delete now."), http.StatusHTTPVersionNotSupported)
-		}
+	http.HandleFunc("DELETE /api/posts/{postId}", func(w http.ResponseWriter, r *http.Request) {
+		postId := r.PathValue("postId")
+		fmt.Fprintf(w, "Received Delete request for post id: %s.\n", postId)
+		slog.Info(fmt.Sprintf("DELETE /api/posts was called with %s.", postId))
+	})
+
+	http.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Received Post request for posts.\n")
+		slog.Info("POST /api/posts was called.")
 	})
 
 	http.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
