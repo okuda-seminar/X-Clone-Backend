@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"x-clone-backend/api/handlers"
 	"x-clone-backend/db"
 )
 
@@ -13,10 +14,11 @@ const (
 )
 
 func main() {
-	_, err := db.Connect()
+	db, err := db.Connect()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer db.Close()
 
 	http.HandleFunc("/api/hello", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, World\n")
@@ -39,7 +41,7 @@ func main() {
 	})
 
 	http.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Create a user.")
+		handlers.CreateUser(w, r, db)
 	})
 
 	http.HandleFunc("GET /api/users/{userId}", func(w http.ResponseWriter, r *http.Request) {
