@@ -33,6 +33,11 @@ func main() {
 		slog.Info("POST /api/posts was called.")
 	})
 
+	http.HandleFunc("POST /api/posts/repost", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Received Post request for reposts.\n")
+		slog.Info("POST /api/posts/repost was called.")
+	})
+
 	http.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Create a user.")
 	})
