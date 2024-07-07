@@ -55,3 +55,45 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 }
+
+// CreatePost creates a new post with the specified user_id and text,
+// then, inserts it into posts table.
+func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body createPostRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
+		return
+	}
+
+	query := `INSERT INTO posts (id, user_id, text) VALUES ($1, $2, $3)
+		RETURNING created_at`
+
+	var createdAt time.Time
+	id := uuid.New()
+
+	err = db.QueryRow(query, id, body.UserID, body.Text).Scan(&createdAt)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not create a post."), http.StatusInternalServerError)
+		return
+	}
+
+	post := entities.Post{
+		ID:        id,
+		UserID:    body.UserID,
+		Text:      body.Text,
+		CreatedAt: createdAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(&post)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
+		return
+	}
+}

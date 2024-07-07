@@ -31,8 +31,7 @@ func main() {
 	})
 
 	http.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Received Post request for posts.\n")
-		slog.Info("POST /api/posts was called.")
+		handlers.CreatePost(w, r, db)
 	})
 
 	http.HandleFunc("POST /api/posts/repost", func(w http.ResponseWriter, r *http.Request) {
