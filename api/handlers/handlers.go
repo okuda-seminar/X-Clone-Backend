@@ -23,13 +23,15 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	query := `INSERT INTO users (id, username, display_name, bio, is_private) VALUES ($1, $2, $3, $4, $5)
-		RETURNING created_at, updated_at`
+	query := `INSERT INTO users (username, display_name, bio, is_private) VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, updated_at`
 
-	var createdAt, updatedAt time.Time
-	id := uuid.New()
+	var (
+		id                   uuid.UUID
+		createdAt, updatedAt time.Time
+	)
 
-	err = db.QueryRow(query, id, body.Username, body.DisplayName, "", false).Scan(&createdAt, &updatedAt)
+	err = db.QueryRow(query, body.Username, body.DisplayName, "", false).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not create a user."), http.StatusInternalServerError)
 		return
@@ -68,13 +70,15 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	query := `INSERT INTO posts (id, user_id, text) VALUES ($1, $2, $3)
-		RETURNING created_at`
+	query := `INSERT INTO posts (user_id, text) VALUES ($1, $2)
+		RETURNING id, created_at`
 
-	var createdAt time.Time
-	id := uuid.New()
+	var (
+		id        uuid.UUID
+		createdAt time.Time
+	)
 
-	err = db.QueryRow(query, id, body.UserID, body.Text).Scan(&createdAt)
+	err = db.QueryRow(query, body.UserID, body.Text).Scan(&id, &createdAt)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not create a post."), http.StatusInternalServerError)
 		return
