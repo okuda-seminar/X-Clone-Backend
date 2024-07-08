@@ -42,6 +42,14 @@ func main() {
 		fmt.Fprintf(w, "Find a user with the specified ID (%s).\n", userId)
 	})
 
+	http.HandleFunc("POST /api/users/{following_user_id}/follow", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Follow a user.")
+	})
+
+	http.HandleFunc("DELETE /api/users/{following_user_id}/follow/{followed_user_id}", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Unfollow a user.")
+	})
+
 	http.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Notifications\n")
 	})
