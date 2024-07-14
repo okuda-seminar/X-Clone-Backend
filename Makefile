@@ -1,6 +1,6 @@
 POSTGRES_SERVER_NAME=x_postgres
 APP_SERVER_NAME=x_app
-SERVER_NAME=x
+SERVER_NAME=x_backend
 
 build:
 	make down
@@ -26,3 +26,6 @@ build_server:
 
 run_server:
 	docker run --name=${SERVER_NAME} ${SERVER_NAME}
+
+stop_server:
+	docker stop ${SERVER_NAME}
