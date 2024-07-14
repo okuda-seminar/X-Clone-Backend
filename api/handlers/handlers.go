@@ -58,6 +58,39 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 }
 
+// FindUserByID finds a user with the specified ID.
+func FindUserByID(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	userID := r.PathValue("userID")
+
+	query := `SELECT * FROM users WHERE id = $1`
+	row := db.QueryRow(query, userID)
+
+	var user entities.User
+	err := row.Scan(
+		&user.ID,
+		&user.Username,
+		&user.DisplayName,
+		&user.Bio,
+		&user.IsPrivate,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not find a user (ID: %s)\n", userID), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(&user)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
+		return
+	}
+}
+
 // CreatePost creates a new post with the specified user_id and text,
 // then, inserts it into posts table.
 func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
