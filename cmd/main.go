@@ -43,9 +43,9 @@ func main() {
 		handlers.CreateUser(w, r, db)
 	})
 
-	http.HandleFunc("GET /api/users/{userId}", func(w http.ResponseWriter, r *http.Request) {
-		userId := r.PathValue("userId")
-		fmt.Fprintf(w, "Find a user with the specified ID (%s).\n", userId)
+	http.HandleFunc("GET /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.FindUserByID(w, r, db)
+		slog.Info("GET /api/users/{userID} was called.")
 	})
 
 	http.HandleFunc("POST /api/users/{following_user_id}/follow", func(w http.ResponseWriter, r *http.Request) {
