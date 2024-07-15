@@ -43,6 +43,12 @@ func main() {
 		handlers.CreateUser(w, r, db)
 	})
 
+	http.HandleFunc("DELETE /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userID")
+		fmt.Fprintf(w, "Received Delete request for user id: %s.\n", userID)
+		slog.Info(fmt.Sprintf("DELETE /api/users was called with %s.", userID))
+	})
+
 	http.HandleFunc("GET /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.FindUserByID(w, r, db)
 		slog.Info("GET /api/users/{userID} was called.")
