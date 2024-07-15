@@ -62,6 +62,17 @@ func main() {
 		fmt.Fprintf(w, "Unfollow a user.")
 	})
 
+	http.HandleFunc("POST /api/users/{id}/muting", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("id")
+		fmt.Fprintf(w, "Received POST request for user id: %s.\n", userID)
+	})
+
+	http.HandleFunc("DELETE /api/users/{source_user_id}/muting/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
+		sourceUserID := r.PathValue("source_user_id")
+		targetUserID := r.PathValue("target_user_id")
+		fmt.Fprintf(w, "Received DELETE request for source user id: %s and target user id: %s.\n", sourceUserID, targetUserID)
+	})
+
 	http.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Notifications\n")
 	})
