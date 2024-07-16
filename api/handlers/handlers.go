@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 	"x-clone-backend/entities"
@@ -56,6 +57,32 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
 		return
 	}
+}
+
+// DeleteUser deletes a user with the specified user ID.
+// If a target user does not exist, it returns 404.
+func DeleteUserByID(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	userID := r.PathValue("userID")
+
+	slog.Info(fmt.Sprintf("DELETE /api/users was called with %s.", userID))
+
+	query := `DELETE FROM users WHERE id = $1`
+	res, err := db.Exec(query, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a user (ID: %s)\n", userID), http.StatusInternalServerError)
+		return
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a user (ID: %s)\n", userID), http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", userID), http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // FindUserByID finds a user with the specified ID.
