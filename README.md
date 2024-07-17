@@ -66,3 +66,16 @@ This will generate two SQL files: one for the up migration and one for the down 
 2. Edit Migration Files
 
 Write the SQL statements in the generated files. For example, to create a new table, add the SQL to the up migration file.
+
+## Discussion Points
+- [ ] Monolith vs Modular Monolith vs Microservices
+- [X] Mocking Database vs Running it with Docker
+    - [How we made PostgreSQL work in unit tests](https://engblog.nirvanatech.com/how-to-run-unit-tests-on-production-data-using-golang-postgresql-f2ebf38a3271)
+- [ ] Graceful Shutdown
+  - [【Go】HTTPサーバーは安全に終了させましょう](https://zenn.dev/tksx1227/articles/5ab5b3c99336c3)
+- [ ] Connection Pooling
+- [ ] Physical Delete vs Logical Delete
+- [ ] Upgrading code and DB schema without downtime
+- [ ] REST vs GraphQL
+- [ ] ent.
+- [ ] How to handle repost
