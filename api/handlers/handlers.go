@@ -161,3 +161,49 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 }
+
+func CreateFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body createFollowshipRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
+		return
+	}
+
+	followingUserID := r.PathValue("following_user_id")
+
+	query := `INSERT INTO followships (following_user_id, followed_user_id) VALUES ($1, $2)`
+
+	_, err = db.Exec(query, followingUserID, body.FollowedUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not create followship."), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func DeleteFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	followingUserID := r.PathValue("following_user_id")
+	followedUserID := r.PathValue("followed_user_id")
+
+	query := `DELETE FROM followships WHERE following_user_id = $1 AND followed_user_id = $2`
+	res, err := db.Exec(query, followingUserID, followedUserID)
+	if err != nil {
+		http.Error(w, "Could not delete followship.", http.StatusInternalServerError)
+		return
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, "Could not delete followship.", http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, "No row found to delete.", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

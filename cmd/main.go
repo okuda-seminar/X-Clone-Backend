@@ -63,12 +63,14 @@ func main() {
 
 	})
 
-	http.HandleFunc("POST /api/users/{following_user_id}/follow", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Follow a user.")
+	http.HandleFunc("POST /api/users/{following_user_id}/following", func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreateFollowship(w, r, db)
 	})
 
-	http.HandleFunc("DELETE /api/users/{following_user_id}/follow/{followed_user_id}", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Unfollow a user.")
+	// TODO: https://github.com/okuda-seminar/X-Clone-Backend/issues/54
+	// - Rename the endpoint for unfollowing a user in the same way as X does.
+	http.HandleFunc("DELETE /api/users/{following_user_id}/following/{followed_user_id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteFollowship(w, r, db)
 	})
 
 	http.HandleFunc("POST /api/users/{id}/muting", func(w http.ResponseWriter, r *http.Request) {
