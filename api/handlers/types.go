@@ -17,3 +17,9 @@ type createPostRequestBody struct {
 	UserID uuid.UUID `json:"user_id,omitempty"`
 	Text   string    `json:"text"`
 }
+
+// createFollowshipRequestBody is the type of the "CreateFollowship"
+// endpoint request body.
+type createFollowshipRequestBody struct {
+	FollowedUserID string `json:"followed_user_id"`
+}
