@@ -207,3 +207,28 @@ func DeleteFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// CreateRepost creates a new repost with the specified post_id and user_id,
+// then, inserts it into reposts table.
+func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body createRepostRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
+		return
+	}
+
+	query := `INSERT INTO reposts (post_id, user_id) VALUES ($1, $2)`
+
+	_, err = db.Exec(query, body.PostID, body.UserID)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not create a repost."), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
