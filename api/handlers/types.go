@@ -18,6 +18,12 @@ type createPostRequestBody struct {
 	Text   string    `json:"text"`
 }
 
+// likePostRequestBody is the type of the "LikePost"
+// endpoint request body.
+type likePostRequestBody struct {
+	PostID uuid.UUID `json:"post_id,omitempty"`
+}
+
 // createFollowshipRequestBody is the type of the "CreateFollowship"
 // endpoint request body.
 type createFollowshipRequestBody struct {
