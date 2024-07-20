@@ -162,6 +162,29 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 }
 
+func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body likePostRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
+		return
+	}
+
+	userID := r.PathValue("id")
+
+	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
+
+	_, err = db.Exec(query, userID, body.PostID)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not create a like."), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
 func CreateFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var body createFollowshipRequestBody
 
