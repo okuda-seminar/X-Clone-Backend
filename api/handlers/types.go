@@ -23,3 +23,10 @@ type createPostRequestBody struct {
 type createFollowshipRequestBody struct {
 	FollowedUserID string `json:"followed_user_id"`
 }
+
+// createRepostRequestBody is the type of the "CreateRepost"
+// endpoint request body.
+type createRepostRequestBody struct {
+	PostID uuid.UUID `json:"post_id,omitempty"`
+	UserID uuid.UUID `json:"user_id,omitempty"`
+}
