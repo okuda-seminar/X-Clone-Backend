@@ -36,3 +36,9 @@ type createRepostRequestBody struct {
 	PostID uuid.UUID `json:"post_id,omitempty"`
 	UserID uuid.UUID `json:"user_id,omitempty"`
 }
+
+// createMutingRequestBody is the type of the "CreateMute"
+// endpoint request body.
+type createMutingRequestBody struct {
+	TargetUserID string `json:"target_user_id,omitempty"`
+}
