@@ -231,6 +231,52 @@ func DeleteFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func CreateMuting(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body createMutingRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Request body was invalid: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	sourceUserID := r.PathValue("id")
+
+	query := `INSERT INTO mutes (source_user_id, target_user_id) VALUES ($1, $2)`
+
+	_, err = db.Exec(query, sourceUserID, body.TargetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not create muting: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func DeleteMuting(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	sourceUserID := r.PathValue("source_user_id")
+	targetUserID := r.PathValue("target_user_id")
+
+	query := `DELETE FROM mutes WHERE source_user_id = $1 AND target_user_id = $2`
+	res, err := db.Exec(query, sourceUserID, targetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete muting: %v", err), http.StatusInternalServerError)
+		return
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete muting: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, "No row found to delete.", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // CreateRepost creates a new repost with the specified post_id and user_id,
 // then, inserts it into reposts table.
 func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
