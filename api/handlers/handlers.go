@@ -172,11 +172,11 @@ func CreateFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	followingUserID := r.PathValue("following_user_id")
+	sourceUserID := r.PathValue("id")
 
-	query := `INSERT INTO followships (following_user_id, followed_user_id) VALUES ($1, $2)`
+	query := `INSERT INTO followships (source_user_id, target_user_id) VALUES ($1, $2)`
 
-	_, err = db.Exec(query, followingUserID, body.FollowedUserID)
+	_, err = db.Exec(query, sourceUserID, body.TargetUserID)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not create followship."), http.StatusInternalServerError)
 		return
@@ -186,11 +186,11 @@ func CreateFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 func DeleteFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	followingUserID := r.PathValue("following_user_id")
-	followedUserID := r.PathValue("followed_user_id")
+	sourceUserID := r.PathValue("source_user_id")
+	targetUserID := r.PathValue("target_user_id")
 
-	query := `DELETE FROM followships WHERE following_user_id = $1 AND followed_user_id = $2`
-	res, err := db.Exec(query, followingUserID, followedUserID)
+	query := `DELETE FROM followships WHERE source_user_id = $1 AND target_user_id = $2`
+	res, err := db.Exec(query, sourceUserID, targetUserID)
 	if err != nil {
 		http.Error(w, "Could not delete followship.", http.StatusInternalServerError)
 		return
