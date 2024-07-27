@@ -53,13 +53,10 @@ func main() {
 
 	http.HandleFunc("POST /api/users/{id}/likes", func(w http.ResponseWriter, r *http.Request) {
 		handlers.LikePost(w, r, db)
-		slog.Info("POST /api/users/{id}/likes was called.")
 	})
 
 	http.HandleFunc("DELETE /api/users/{id}/likes/{post_id}", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Received DELETE request for likes\n")
-		slog.Info("DELETE /api/users/{id}/likes/{post_id} was called.")
-
+		handlers.UnlikePost(w, r, db)
 	})
 
 	http.HandleFunc("POST /api/users/{id}/following", func(w http.ResponseWriter, r *http.Request) {
