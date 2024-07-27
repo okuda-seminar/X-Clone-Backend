@@ -416,3 +416,28 @@ func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	w.WriteHeader(http.StatusCreated)
 }
+
+func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	postID := r.PathValue("post_id")
+	userID := r.PathValue("user_id")
+
+	query := `DELETE FROM reposts WHERE post_id = $1 AND user_id = $2`
+
+	res, err := db.Exec(query, postID, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a repost: (user id: %s, post id: %s)\n", userID, postID), http.StatusInternalServerError)
+		return
+	}
+
+	cnt, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a repost: (user id: %s, post id: %s)\n", userID, postID), http.StatusInternalServerError)
+		return
+	}
+	if cnt != 1 {
+		http.Error(w, fmt.Sprintf("No row found to delete: (user id: %s, post id: %s)\n", userID, postID), http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
