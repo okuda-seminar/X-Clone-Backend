@@ -78,6 +78,14 @@ func main() {
 		handlers.DeleteMuting(w, r, db)
 	})
 
+	http.HandleFunc("POST /api/users/{id}/blocking", func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreateBlocking(w, r, db)
+	})
+
+	http.HandleFunc("DELETE /api/users/{source_user_id}/blocking/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteBlocking(w, r, db)
+	})
+
 	http.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Notifications\n")
 	})
