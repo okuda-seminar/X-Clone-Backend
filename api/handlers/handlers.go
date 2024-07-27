@@ -277,6 +277,86 @@ func DeleteMuting(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func CreateBlocking(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	var body createBlockingRequestBody
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Request body was invalid: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	sourceUserID := r.PathValue("id")
+	targetUserID := body.TargetUserID
+
+	tx, err := db.Begin()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not start transaction: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	defer tx.Rollback()
+
+	query := `INSERT INTO blocks (source_user_id, target_user_id) VALUES ($1, $2)`
+	_, err = tx.Exec(query, sourceUserID, targetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not create blocking: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	query = `DELETE FROM followships WHERE source_user_id = $1 AND target_user_id = $2`
+	_, err = tx.Exec(query, sourceUserID, targetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete followship from source to target: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = tx.Exec(query, targetUserID, sourceUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete followship from target to source: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	query = `DELETE FROM mutes WHERE source_user_id = $1 AND target_user_id = $2`
+	_, err = tx.Exec(query, sourceUserID, targetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete mute: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not commit transaction: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func DeleteBlocking(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	sourceUserID := r.PathValue("source_user_id")
+	targetUserID := r.PathValue("target_user_id")
+
+	query := `DELETE FROM blocks WHERE source_user_id = $1 AND target_user_id = $2`
+	res, err := db.Exec(query, sourceUserID, targetUserID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete blocking: %v", err), http.StatusInternalServerError)
+		return
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete blocking: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, "No row found to delete.", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // CreateRepost creates a new repost with the specified post_id and user_id,
 // then, inserts it into reposts table.
 func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
