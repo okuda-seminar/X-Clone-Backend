@@ -174,6 +174,8 @@ func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	userID := r.PathValue("id")
 
+	slog.Info(fmt.Sprintf("POST /api/users/{id}/likes was called with %s.", userID))
+
 	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
 
 	_, err = db.Exec(query, userID, body.PostID)
@@ -183,6 +185,32 @@ func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func UnlikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	userID := r.PathValue("id")
+	postID := r.PathValue("post_id")
+
+	slog.Info(fmt.Sprintf("DELETE /api/users/{id}/likes/{post_id} was called with %s and %s.", userID, postID))
+
+	query := "DELETE FROM likes WHERE user_id = $1 AND post_id = $2"
+	res, err := db.Exec(query, userID, postID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a like: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a like: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, "No row found to delete", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func CreateFollowship(w http.ResponseWriter, r *http.Request, db *sql.DB) {
