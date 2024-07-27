@@ -38,6 +38,10 @@ func main() {
 		handlers.CreateRepost(w, r, db)
 	})
 
+	http.HandleFunc("DELETE /api/posts/reposts/{user_id}/{post_id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteRepost(w, r, db)
+	})
+
 	http.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreateUser(w, r, db)
 	})
