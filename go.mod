@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/ory/dockertest v3.3.5+incompatible
 	github.com/stretchr/testify v1.8.3
