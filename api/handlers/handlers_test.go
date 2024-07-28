@@ -23,6 +23,11 @@ func (s *HandlersTestSuite) TestCreateUser() {
 			expectedCode: http.StatusCreated,
 		},
 		{
+			name:         "invalid JSON body",
+			body:         `{ "username": "` + "test",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
 			name:         "invalid body",
 			body:         `{ "invalid": "test" }`,
 			expectedCode: http.StatusInternalServerError,
@@ -30,7 +35,7 @@ func (s *HandlersTestSuite) TestCreateUser() {
 		{
 			name:         "duplicated username",
 			body:         `{ "username": "test", "display_name": "duplicated" }`,
-			expectedCode: http.StatusInternalServerError,
+			expectedCode: http.StatusConflict,
 		},
 	}
 

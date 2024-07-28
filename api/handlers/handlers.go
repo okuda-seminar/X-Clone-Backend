@@ -34,7 +34,14 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	err = db.QueryRow(query, body.Username, body.DisplayName, "", false).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not create a user."), http.StatusInternalServerError)
+		var code int
+
+		if isUniqueViolationError(err) {
+			code = http.StatusConflict
+		} else {
+			code = http.StatusInternalServerError
+		}
+		http.Error(w, fmt.Sprintln("Could not create a user."), code)
 		return
 	}
 
