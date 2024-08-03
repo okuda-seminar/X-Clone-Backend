@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"x-clone-backend/entities"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -107,6 +109,62 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 	}
 }
 
+func (s *HandlersTestSuite) TestCreateRepost() {
+	userId := s.getTestUserId(`{ "username": "test", "display_name": "test" }`)
+	postId := s.getTestPostId(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userId))
+
+	tests := []struct {
+		name         string
+		body         string
+		expectedCode int
+	}{
+		{
+			name:         "create repost",
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, userId),
+			expectedCode: http.StatusCreated,
+		},
+		{
+			name:         "invalid JSON body",
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s }`, postId, userId),
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "invalid body",
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			expectedCode: http.StatusInternalServerError,
+		},
+		{
+			name:         "non-existent user id",
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, uuid.New()),
+			expectedCode: http.StatusInternalServerError,
+		},
+		{
+			name:         "non-existent post id",
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, uuid.New(), userId),
+			expectedCode: http.StatusInternalServerError,
+		},
+		{
+			name:         "duplicated repost",
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, userId),
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, test := range tests {
+		req := httptest.NewRequest(
+			"POST",
+			"/api/posts/reposts",
+			strings.NewReader(test.body),
+		)
+		rr := httptest.NewRecorder()
+		CreateRepost(rr, req, s.db)
+
+		if rr.Code != test.expectedCode {
+			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
+		}
+	}
+}
+
 func (s *HandlersTestSuite) getTestUserId(body string) string {
 	req := httptest.NewRequest(
 		"POST",
@@ -120,6 +178,21 @@ func (s *HandlersTestSuite) getTestUserId(body string) string {
 	_ = json.NewDecoder(rr.Body).Decode(&user)
 	sourceUserId := user.ID.String()
 	return sourceUserId
+}
+
+func (s *HandlersTestSuite) getTestPostId(body string) string {
+	req := httptest.NewRequest(
+		"POST",
+		"/api/posts",
+		strings.NewReader(body),
+	)
+	rr := httptest.NewRecorder()
+	CreatePost(rr, req, s.db)
+
+	var post entities.Post
+	_ = json.NewDecoder(rr.Body).Decode(&post)
+	postId := post.ID.String()
+	return postId
 }
 
 // TestHandlersTestSuite runs all of the tests attached to HandlersTestSuite.
