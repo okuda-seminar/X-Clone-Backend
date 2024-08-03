@@ -169,6 +169,8 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 }
 
+// LikePost creates a like with the specified user_id and post_id,
+// then, inserts it into likes table.
 func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var body likePostRequestBody
 
