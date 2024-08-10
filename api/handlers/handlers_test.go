@@ -58,56 +58,56 @@ func (s *HandlersTestSuite) TestLikePost() {
 	// from the users and posts table.
 	// Therefore, users and posts are created
 	// for testing purposes to obtain these IDs.
-	authorUserId := s.getTestUserId(`{ "username": "author", "display_name": "author" }`)
-	likerUserId := s.getTestUserId(`{ "username": "liker", "display_name": "liker" }`)
-	postId := s.getTestPostId(fmt.Sprintf(`{ "user_id": "%s", "text": "test post"}`, authorUserId))
+	authorUserID := s.newTestUser(`{ "username": "author", "display_name": "author" }`)
+	likerUserID := s.newTestUser(`{ "username": "liker", "display_name": "liker" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post"}`, authorUserID))
 
 	tests := []struct {
 		name         string
-		userId       string
+		userID       string
 		body         string
 		expectedCode int
 	}{
 		{
-			name:         "create like for a own post",
-			userId:       authorUserId,
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			name:         "like an own post successfully with a proper pair of User and Post",
+			userID:       authorUserID,
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
 			expectedCode: http.StatusCreated,
 		},
 		{
-			name:         "create like for other's post",
-			userId:       likerUserId,
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			name:         "like another user's post successfully with a proper pair of User and Post",
+			userID:       likerUserID,
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
 			expectedCode: http.StatusCreated,
 		},
 		{
-			name:         "invalid JSON body",
-			userId:       likerUserId,
-			body:         fmt.Sprintf(`{ "post_id": "%s"`, postId),
+			name:         "fail to like another user's post with a invalid JSON body",
+			userID:       likerUserID,
+			body:         fmt.Sprintf(`{ "post_id": "%s"`, postID),
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			name:         "invalid body",
-			userId:       likerUserId,
+			name:         "fail to like a post with a invalid JSON field",
+			userID:       likerUserID,
 			body:         `{ "invalid": "test" }`,
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
-			name:         "non-existent user id",
-			userId:       uuid.New().String(),
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			name:         "fail to like a post with a pair of non-existent User and proper Post",
+			userID:       uuid.New().String(),
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
-			name:         "non-existent post id",
-			userId:       likerUserId,
+			name:         "fail to like a post with a pair of proper User and non-existent Post",
+			userID:       likerUserID,
 			body:         fmt.Sprintf(`{ "post_id": "%s" }`, uuid.New().String()),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
-			name:         "duplicated like",
-			userId:       likerUserId,
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			name:         "fail to like another user's post duplicately with a proper pair of User and Post",
+			userID:       likerUserID,
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
 			expectedCode: http.StatusInternalServerError,
 		},
 	}
@@ -118,7 +118,7 @@ func (s *HandlersTestSuite) TestLikePost() {
 			"/api/users/{id}/likes",
 			strings.NewReader(test.body),
 		)
-		req.SetPathValue("id", test.userId)
+		req.SetPathValue("id", test.userID)
 
 		rr := httptest.NewRecorder()
 		LikePost(rr, req, s.db)
@@ -134,12 +134,72 @@ func (s *HandlersTestSuite) TestLikePost() {
 	}
 }
 
+func (s *HandlersTestSuite) TestUnlikePost() {
+	// UnlikePost must use existing user ID and post ID
+	// from the users and posts table.
+	// Therefore, users and posts are created
+	// for testing purposes to obtain these IDs.
+	userID := s.newTestUser(`{ "username": "user", "display_name": "user" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post" }`, userID))
+	s.newTestLike(userID, postID)
+
+	tests := []struct {
+		name         string
+		userID       string
+		postID       string
+		expectedCode int
+	}{
+		{
+			name:         "unlike a post successfully with a proper pair of User and Post.",
+			userID:       userID,
+			postID:       postID,
+			expectedCode: http.StatusNoContent,
+		},
+		{
+			name:         "fail to unlike a post with a pair of non-existent User and proper Post.",
+			userID:       uuid.New().String(),
+			postID:       postID,
+			expectedCode: http.StatusNotFound,
+		},
+		{
+			name:         "fail to unlike a post with a pair of proper User and non-existent Post.",
+			userID:       userID,
+			postID:       uuid.New().String(),
+			expectedCode: http.StatusNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		req := httptest.NewRequest(
+			"DELETE",
+			"/api/users/{id}/likes/{post_id}",
+			strings.NewReader(""),
+		)
+		req.SetPathValue("id", test.userID)
+		req.SetPathValue("post_id", test.postID)
+
+		rr := httptest.NewRecorder()
+		UnlikePost(rr, req, s.db)
+
+		if rr.Code != test.expectedCode {
+			s.T().Errorf(
+				"%s: wrong code returned; expected %d, but got %d",
+				test.name,
+				test.expectedCode,
+				rr.Code,
+			)
+		}
+
+	}
+
+}
+
 func (s *HandlersTestSuite) TestCreateMuting() {
 	// CreateMuting must use existing user IDs from the user table
 	// for both the source user ID and target user ID.
 	// Therefore, users are created for testing purposes to obtain these IDs.
-	sourceUserId := s.getTestUserId(`{ "username": "test", "display_name": "test" }`)
-	targetUserId := s.getTestUserId(`{ "username": "test2", "display_name": "test2" }`)
+	sourceUserID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
+	targetUserID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
 
 	tests := []struct {
 		name         string
@@ -148,12 +208,12 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 	}{
 		{
 			name:         "create muting",
-			body:         `{ "target_user_id": "` + targetUserId + `" }`,
+			body:         `{ "target_user_id": "` + targetUserID + `" }`,
 			expectedCode: http.StatusCreated,
 		},
 		{
 			name:         "invalid JSON body",
-			body:         `{ "target_user_id": "` + targetUserId,
+			body:         `{ "target_user_id": "` + targetUserID,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -163,7 +223,7 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 		},
 		{
 			name:         "duplicated muting",
-			body:         `{ "target_user_id": "` + targetUserId + `" }`,
+			body:         `{ "target_user_id": "` + targetUserID + `" }`,
 			expectedCode: http.StatusInternalServerError,
 		},
 	}
@@ -174,7 +234,7 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 			"/api/users/{id}/muting",
 			strings.NewReader(test.body),
 		)
-		req.SetPathValue("id", sourceUserId)
+		req.SetPathValue("id", sourceUserID)
 
 		rr := httptest.NewRecorder()
 		CreateMuting(rr, req, s.db)
@@ -191,8 +251,8 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 }
 
 func (s *HandlersTestSuite) TestCreateRepost() {
-	userId := s.getTestUserId(`{ "username": "test", "display_name": "test" }`)
-	postId := s.getTestPostId(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userId))
+	userID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
 
 	tests := []struct {
 		name         string
@@ -201,32 +261,32 @@ func (s *HandlersTestSuite) TestCreateRepost() {
 	}{
 		{
 			name:         "create repost",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, userId),
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID),
 			expectedCode: http.StatusCreated,
 		},
 		{
 			name:         "invalid JSON body",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s }`, postId, userId),
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s }`, postID, userID),
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "invalid body",
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postId),
+			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			name:         "non-existent user id",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, uuid.New()),
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, uuid.New()),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			name:         "non-existent post id",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, uuid.New(), userId),
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, uuid.New(), userID),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			name:         "duplicated repost",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postId, userId),
+			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID),
 			expectedCode: http.StatusInternalServerError,
 		},
 	}
@@ -246,7 +306,7 @@ func (s *HandlersTestSuite) TestCreateRepost() {
 	}
 }
 
-func (s *HandlersTestSuite) getTestUserId(body string) string {
+func (s *HandlersTestSuite) newTestUser(body string) string {
 	req := httptest.NewRequest(
 		"POST",
 		"/api/users",
@@ -257,11 +317,11 @@ func (s *HandlersTestSuite) getTestUserId(body string) string {
 
 	var user entities.User
 	_ = json.NewDecoder(rr.Body).Decode(&user)
-	sourceUserId := user.ID.String()
-	return sourceUserId
+	sourceUserID := user.ID.String()
+	return sourceUserID
 }
 
-func (s *HandlersTestSuite) getTestPostId(body string) string {
+func (s *HandlersTestSuite) newTestPost(body string) string {
 	req := httptest.NewRequest(
 		"POST",
 		"/api/posts",
@@ -272,8 +332,20 @@ func (s *HandlersTestSuite) getTestPostId(body string) string {
 
 	var post entities.Post
 	_ = json.NewDecoder(rr.Body).Decode(&post)
-	postId := post.ID.String()
-	return postId
+	postID := post.ID.String()
+	return postID
+}
+
+func (s *HandlersTestSuite) newTestLike(userID string, postID string) {
+	req := httptest.NewRequest(
+		"POST",
+		"/api/users/{id}/likes",
+		strings.NewReader(fmt.Sprintf(`{ "post_id": "%s" }`, postID)),
+	)
+	req.SetPathValue("id", userID)
+
+	rr := httptest.NewRecorder()
+	LikePost(rr, req, s.db)
 }
 
 // TestHandlersTestSuite runs all of the tests attached to HandlersTestSuite.
