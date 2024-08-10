@@ -306,6 +306,55 @@ func (s *HandlersTestSuite) TestCreateRepost() {
 	}
 }
 
+func (s *HandlersTestSuite) TestDeleteRepost() {
+	userID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
+	s.newTestRepost(userID, postID)
+
+	tests := []struct {
+		name         string
+		expectedCode int
+	}{
+		{
+			name:         "delete repost",
+			expectedCode: http.StatusNoContent,
+		},
+		{
+			name:         "non-existent repost",
+			expectedCode: http.StatusNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(
+			"DELETE",
+			"/api/posts/reposts/{user_id}/{post_id}",
+			strings.NewReader(""),
+		)
+		req.SetPathValue("user_id", userID)
+		req.SetPathValue("post_id", postID)
+
+		DeleteRepost(rr, req, s.db)
+
+		if rr.Code != test.expectedCode {
+			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
+		}
+
+	}
+
+}
+
+func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
+	req := httptest.NewRequest(
+		"POST",
+		"/api/posts/reposts",
+		strings.NewReader(fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID)),
+	)
+	rr := httptest.NewRecorder()
+	CreateRepost(rr, req, s.db)
+}
+
 func (s *HandlersTestSuite) newTestUser(body string) string {
 	req := httptest.NewRequest(
 		"POST",
