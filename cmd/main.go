@@ -24,14 +24,12 @@ func main() {
 		fmt.Fprintf(w, "Hello, World\n")
 	})
 
-	http.HandleFunc("DELETE /api/posts/{postId}", func(w http.ResponseWriter, r *http.Request) {
-		postId := r.PathValue("postId")
-		fmt.Fprintf(w, "Received Delete request for post id: %s.\n", postId)
-		slog.Info(fmt.Sprintf("DELETE /api/posts was called with %s.", postId))
-	})
-
 	http.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreatePost(w, r, db)
+	})
+
+	http.HandleFunc("DELETE /api/posts/{postID}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeletePost(w, r, db)
 	})
 
 	http.HandleFunc("POST /api/posts/reposts", func(w http.ResponseWriter, r *http.Request) {
