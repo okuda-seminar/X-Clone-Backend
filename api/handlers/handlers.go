@@ -169,6 +169,31 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 }
 
+// DeletePost deletes a post with the specified post ID.
+// If the post doesn't exist, it returns 404 error.
+func DeletePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	postID := r.PathValue("postID")
+	slog.Info(fmt.Sprintf("DELETE /api/posts was called with %s.", postID))
+
+	query := `DELETE FROM posts WHERE id = $1`
+	res, err := db.Exec(query, postID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a post (ID: %s)\n", postID), http.StatusInternalServerError)
+		return
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not delete a post (ID: %s)\n", postID), http.StatusInternalServerError)
+		return
+	}
+	if count != 1 {
+		http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", postID), http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // LikePost creates a like with the specified user_id and post_id,
 // then, inserts it into likes table.
 func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
