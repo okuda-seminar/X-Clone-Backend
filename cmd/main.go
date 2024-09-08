@@ -89,6 +89,10 @@ func main() {
 		fmt.Fprintf(w, "Notifications\n")
 	})
 
+	http.HandleFunc("/api/timeline", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetPosts(w, r, db)
+	})
+
 	log.Println("Starting server...")
 
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
