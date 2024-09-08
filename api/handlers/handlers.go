@@ -468,3 +468,43 @@ func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// GetPosts gets posts from posts table.
+func GetPosts(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	query := `SELECT * FROM posts`
+	rows, err := db.Query(query)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var posts []entities.Post
+	for rows.Next() {
+		var (
+			id         uuid.UUID
+			user_id    uuid.UUID
+			text       string
+			created_at time.Time
+		)
+		if err := rows.Scan(&id, &user_id, &text, &created_at); err != nil {
+			http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
+			return
+		}
+
+		post := entities.Post{
+			ID:        id,
+			UserID:    user_id,
+			Text:      text,
+			CreatedAt: created_at,
+		}
+		posts = append(posts, post)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(posts); err != nil {
+		http.Error(w, "Failed to convert to json", http.StatusInternalServerError)
+		return
+	}
+}
