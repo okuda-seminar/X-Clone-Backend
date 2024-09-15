@@ -391,6 +391,9 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 
 }
 
+// TODO: https://github.com/okuda-seminar/X-Clone-Backend/issues/100
+// Write a test for this method.
+
 func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
 	req := httptest.NewRequest(
 		"POST",
