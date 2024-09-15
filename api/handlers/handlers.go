@@ -469,10 +469,18 @@ func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GetPosts gets posts from posts table.
-func GetPosts(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	query := `SELECT * FROM posts`
-	rows, err := db.Query(query)
+// GetReverseChronologicalHomeTimeline gets posts whose user_id is user or following user from posts table.
+func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	userID := r.PathValue("id")
+	query := `
+		SELECT posts.* 
+		FROM posts
+		LEFT JOIN followships ON posts.user_id = followships.target_user_id
+		WHERE followships.source_user_id = $1
+		OR posts.user_id = $1
+		ORDER BY posts.created_at DESC
+	`
+	rows, err := db.Query(query, userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
 		return

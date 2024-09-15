@@ -65,6 +65,10 @@ func main() {
 		handlers.CreateFollowship(w, r, db)
 	})
 
+	http.HandleFunc("GET /api/users/{id}/timelines/reverse_chronological", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetReverseChronologicalHomeTimeline(w, r, db)
+	})
+
 	http.HandleFunc("DELETE /api/users/{source_user_id}/following/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteFollowship(w, r, db)
 	})
@@ -87,10 +91,6 @@ func main() {
 
 	http.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Notifications\n")
-	})
-
-	http.HandleFunc("/api/timeline", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetPosts(w, r, db)
 	})
 
 	log.Println("Starting server...")
