@@ -391,8 +391,59 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 
 }
 
-// TODO: https://github.com/okuda-seminar/X-Clone-Backend/issues/100
-// Write a test for this method.
+func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
+	// This test method verifies the number of posts in the response body
+	// by counting the occurrences of the "created_at" string.
+	// Returning the entire post body when posts are created would require modifying newTestPost
+	// to include the "created_at" field, which would involve more extensive changes.
+	// To minimize modifications, we only count the occurrences of the "created_at" string.
+	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
+	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
+	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
+	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test2" }`, user2ID))
+	user3ID := s.newTestUser(`{ "username": "test3", "display_name": "test3" }`)
+	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test3" }`, user3ID))
+	user4ID := s.newTestUser(`{ "username": "test4", "display_name": "test4" }`)
+	s.newTestFollow(user3ID, user2ID)
+
+	tests := []struct {
+		name          string
+		userID        string
+		expectedCount int
+	}{
+		{
+			name:          "get only a target user posts",
+			userID:        user1ID,
+			expectedCount: 1,
+		},
+		{
+			name:          "get a target user and following users posts",
+			userID:        user3ID,
+			expectedCount: 2,
+		},
+		{
+			name:          "get no posts",
+			userID:        user4ID,
+			expectedCount: 0,
+		},
+	}
+
+	for _, test := range tests {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(
+			"GET",
+			"/api/users/{id}/timelines/reverse_chronological",
+			strings.NewReader(""),
+		)
+		req.SetPathValue("id", test.userID)
+
+		GetReverseChronologicalHomeTimeline(rr, req, s.db)
+		count := strings.Count(rr.Body.String(), "created_at")
+		if count != test.expectedCount {
+			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, count)
+		}
+	}
+}
 
 func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
 	req := httptest.NewRequest(
@@ -444,6 +495,18 @@ func (s *HandlersTestSuite) newTestLike(userID string, postID string) {
 
 	rr := httptest.NewRecorder()
 	LikePost(rr, req, s.db)
+}
+
+func (s *HandlersTestSuite) newTestFollow(sourceUserID string, targetUserID string) {
+	req := httptest.NewRequest(
+		"POST",
+		"/api/users/{id}/following",
+		strings.NewReader(fmt.Sprintf(`{ "target_user_id": "%s" }`, targetUserID)),
+	)
+	req.SetPathValue("id", sourceUserID)
+
+	rr := httptest.NewRecorder()
+	CreateFollowship(rr, req, s.db)
 }
 
 // TestHandlersTestSuite runs all of the tests attached to HandlersTestSuite.
