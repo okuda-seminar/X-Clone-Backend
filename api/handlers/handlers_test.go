@@ -391,6 +391,47 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 
 }
 
+func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
+	// This test method verifies the number of posts in the response body
+	// by counting the occurrences of the "created_at" string.
+	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
+	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
+	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
+
+	tests := []struct {
+		name          string
+		userID        string
+		expectedCount int
+	}{
+		{
+			name:          "get user posts",
+			userID:        user1ID,
+			expectedCount: 1,
+		},
+		{
+			name:          "get no posts",
+			userID:        user2ID,
+			expectedCount: 0,
+		},
+	}
+
+	for _, test := range tests {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(
+			"GET",
+			"/api/users/{id}/posts",
+			strings.NewReader(""),
+		)
+		req.SetPathValue("id", test.userID)
+
+		GetUserPostsTimeline(rr, req, s.db)
+		count := strings.Count(rr.Body.String(), "created_at")
+		if count != test.expectedCount {
+			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, count)
+		}
+	}
+}
+
 func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 	// This test method verifies the number of posts in the response body
 	// by counting the occurrences of the "created_at" string.

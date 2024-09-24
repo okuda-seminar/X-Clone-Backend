@@ -65,6 +65,10 @@ func main() {
 		handlers.CreateFollowship(w, r, db)
 	})
 
+	http.HandleFunc("GET /api/users/{id}/posts", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetUserPostsTimeline(w, r, db)
+	})
+
 	http.HandleFunc("GET /api/users/{id}/timelines/reverse_chronological", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetReverseChronologicalHomeTimeline(w, r, db)
 	})
