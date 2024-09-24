@@ -1,0 +1,15 @@
+openapi: 3.1.0
+info:
+  title: X-Clone
+  version: 1.0.0
+servers:
+  - url: "http://localhost:80"
+paths:
+  /api/users:
+    $ref: ./paths/users.yml
+components:
+  schemas:
+    CreateUserRequest:
+      $ref: ./components/requests/create_user_request.yml
+    CreateUserResponse:
+      $ref: ./components/responses/create_user_response.yml
