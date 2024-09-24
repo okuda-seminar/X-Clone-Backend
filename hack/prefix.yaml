@@ -1,5 +1,6 @@
 allow-prefix:
   - "[CI/CD]"
+  - "[Infra]"
   - "[Posts]"
   - "[Users]"
   - "[Timeline]"

@@ -29,3 +29,7 @@ run_server:
 
 stop_server:
 	docker stop ${SERVER_NAME}
+
+bundle-openapi:
+	docker build -f ./docker/redocly.Dockerfile -t redocly-bundle .
+	docker run --rm -v $(shell pwd)/openapi:/openapi redocly-bundle

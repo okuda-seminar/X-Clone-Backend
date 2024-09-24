@@ -3,3 +3,8 @@
 
 # Postgres data
 db/data
+
+# OpenAPI bundle
+openapi/bundle/*
+
+!.gitkeep

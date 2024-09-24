@@ -1,0 +1,10 @@
+type: object
+title: CreateUserRequest
+required:
+  - username
+  - display_name
+properties:
+  username:
+    type: string
+  display_name:
+    type: string
