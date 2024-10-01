@@ -33,3 +33,8 @@ stop_server:
 bundle-openapi:
 	docker build -f ./docker/redocly.Dockerfile -t redocly-bundle .
 	docker run --rm -v $(shell pwd)/openapi:/openapi redocly-bundle
+
+generate-code-from-openapi: up
+	make bundle-openapi
+	docker-compose exec ${APP_SERVER_NAME} oapi-codegen -config ./config/oapi_server_config.yml ./openapi/bundle/bundled-openapi.yml
+	docker-compose exec ${APP_SERVER_NAME} oapi-codegen -config ./config/oapi_models_config.yml ./openapi/bundle/bundled-openapi.yml
