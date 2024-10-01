@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"x-clone-backend/api/transfers"
 	"x-clone-backend/entities"
+	openapi "x-clone-backend/gen"
 
 	"github.com/google/uuid"
 )
@@ -15,7 +17,7 @@ import (
 // CreateUser creates a new user with the specified useranme and display name,
 // then, inserts it into users table.
 func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	var body createUserRequestBody
+	var body openapi.CreateUserRequest
 
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&body)
@@ -54,12 +56,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}
+	res := transfers.ToCreateUserResponse(&user)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	encoder := json.NewEncoder(w)
-	err = encoder.Encode(&user)
+	err = encoder.Encode(res)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
 		return
