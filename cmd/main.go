@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"x-clone-backend/api"
 	"x-clone-backend/api/handlers"
+	"x-clone-backend/api/middlewares"
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
 )
@@ -94,7 +95,7 @@ func main() {
 		fmt.Fprintf(w, "Notifications\n")
 	})
 
-	handler := openapi.HandlerFromMux(&sever, mux)
+	handler := middlewares.CORS(openapi.HandlerFromMux(&sever, mux))
 	s := http.Server{
 		Handler: handler,
 		Addr:    fmt.Sprintf(":%d", port),

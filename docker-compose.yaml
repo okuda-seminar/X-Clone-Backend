@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   x_postgres:
     build:
@@ -13,6 +11,8 @@ services:
       - .env
     volumes:
       - ./db/data/:/var/lib/postgresql/data/
+    networks:
+      - x_clone
 
   x_app:
     depends_on:
@@ -34,3 +34,10 @@ services:
       - .env
     volumes:
       - ./:/go/src/app
+    networks:
+      - x_clone
+
+networks:
+  x_clone:
+    name: x_clone
+    driver: bridge
