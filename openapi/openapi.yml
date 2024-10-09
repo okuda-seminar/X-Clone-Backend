@@ -7,6 +7,8 @@ servers:
 paths:
   /api/users:
     $ref: ./paths/users.yml
+  /api/posts:
+    $ref: ./paths/posts.yml
   /api/users/{id}/timelines/reverse_chronological:
     $ref: ./paths/reverse_chronological_timeline_posts.yml
   /api/users/{id}/posts:
@@ -18,6 +20,10 @@ components:
       $ref: ./components/requests/create_user_request.yml
     CreateUserResponse:
       $ref: ./components/responses/create_user_response.yml
+    CreatePostRequest:
+      $ref: ./components/requests/create_post_request.yml
+    CreatePostResponse:
+      $ref: ./components/responses/create_post_response.yml
     GetReverseChronologicalHomeTimelineResponse:
       $ref: ./components/responses/get_reverse_chronological_home_timeline_response.yml
     GetUserPostsTimelineResponse:
