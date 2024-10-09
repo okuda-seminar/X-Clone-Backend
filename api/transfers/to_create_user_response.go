@@ -1,7 +1,7 @@
 package transfers
 
 import (
-	"x-clone-backend/entities"
+	"x-clone-backend/domain/entities"
 	openapi "x-clone-backend/gen"
 )
 
