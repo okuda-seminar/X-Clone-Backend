@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"testing"
+	"x-clone-backend/domain/repositories"
+	"x-clone-backend/infrastructure"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -66,8 +68,9 @@ func TestMain(m *testing.M) {
 
 type HandlersTestSuite struct {
 	suite.Suite
-	db       *sql.DB
-	resource *dockertest.Resource
+	db              *sql.DB
+	resource        *dockertest.Resource
+	postsRepository repositories.PostsRepositoryInterface
 }
 
 // SetupTest runs before each test in the suite.
@@ -102,6 +105,9 @@ func (s *HandlersTestSuite) SetupTest() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// Set up the posts repository.
+	s.postsRepository = infrastructure.NewPostsRepository(s.db)
 
 	m.Up()
 }

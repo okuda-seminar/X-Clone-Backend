@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"time"
 	"x-clone-backend/api/transfers"
-	"x-clone-backend/entities"
+	"x-clone-backend/domain/entities"
+	"x-clone-backend/domain/repositories"
 	openapi "x-clone-backend/gen"
 
 	"github.com/google/uuid"
@@ -473,36 +474,11 @@ func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 // GetUserPostsTimeline gets posts by a single user, specified by the requested user ID.
-func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, p repositories.PostsRepositoryInterface) {
 	userID := r.PathValue("id")
-	query := `SELECT * FROM posts WHERE user_id = $1`
-
-	rows, err := db.Query(query, userID)
+	posts, err := p.GetSpecificUserPosts(userID)
 	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
-	}
-	defer rows.Close()
-
-	var posts []entities.Post
-	for rows.Next() {
-		var (
-			id         uuid.UUID
-			user_id    uuid.UUID
-			text       string
-			created_at time.Time
-		)
-		if err := rows.Scan(&id, &user_id, &text, &created_at); err != nil {
-			http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
-			return
-		}
-
-		post := entities.Post{
-			ID:        id,
-			UserID:    user_id,
-			Text:      text,
-			CreatedAt: created_at,
-		}
-		posts = append(posts, post)
+		http.Error(w, "Failed to get posts", http.StatusInternalServerError)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -514,43 +490,12 @@ func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 // GetReverseChronologicalHomeTimeline gets posts whose user_id is user or following user from posts table.
-func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, p repositories.PostsRepositoryInterface) {
 	userID := r.PathValue("id")
-	query := `
-		SELECT posts.* 
-		FROM posts
-		LEFT JOIN followships ON posts.user_id = followships.target_user_id
-		WHERE followships.source_user_id = $1
-		OR posts.user_id = $1
-		ORDER BY posts.created_at DESC
-	`
-	rows, err := db.Query(query, userID)
+	posts, err := p.GetUserAndFolloweePosts(userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var posts []entities.Post
-	for rows.Next() {
-		var (
-			id         uuid.UUID
-			user_id    uuid.UUID
-			text       string
-			created_at time.Time
-		)
-		if err := rows.Scan(&id, &user_id, &text, &created_at); err != nil {
-			http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
-			return
-		}
-
-		post := entities.Post{
-			ID:        id,
-			UserID:    user_id,
-			Text:      text,
-			CreatedAt: created_at,
-		}
-		posts = append(posts, post)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

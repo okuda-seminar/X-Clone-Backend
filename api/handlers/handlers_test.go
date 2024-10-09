@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"x-clone-backend/entities"
+	"x-clone-backend/domain/entities"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -392,8 +392,7 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 }
 
 func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
-	// This test method verifies the number of posts in the response body
-	// by counting the occurrences of the "created_at" string.
+	// This test method verifies the number of posts in the response body.
 	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
 	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
@@ -424,20 +423,23 @@ func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 		)
 		req.SetPathValue("id", test.userID)
 
-		GetUserPostsTimeline(rr, req, s.db)
-		count := strings.Count(rr.Body.String(), "created_at")
-		if count != test.expectedCount {
-			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, count)
+		GetUserPostsTimeline(rr, req, s.postsRepository)
+		var posts []*entities.Post
+
+		decoder := json.NewDecoder(rr.Body)
+		err := decoder.Decode(&posts)
+		if err != nil {
+			s.T().Errorf("%s: failed to decode response", test.name)
+		}
+
+		if len(posts) != test.expectedCount {
+			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, len(posts))
 		}
 	}
 }
 
 func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
-	// This test method verifies the number of posts in the response body
-	// by counting the occurrences of the "created_at" string.
-	// Returning the entire post body when posts are created would require modifying newTestPost
-	// to include the "created_at" field, which would involve more extensive changes.
-	// To minimize modifications, we only count the occurrences of the "created_at" string.
+	// This test method verifies the number of posts in the response body.
 	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
 	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
@@ -478,10 +480,17 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 		)
 		req.SetPathValue("id", test.userID)
 
-		GetReverseChronologicalHomeTimeline(rr, req, s.db)
-		count := strings.Count(rr.Body.String(), "created_at")
-		if count != test.expectedCount {
-			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, count)
+		GetReverseChronologicalHomeTimeline(rr, req, s.postsRepository)
+		var posts []*entities.Post
+
+		decoder := json.NewDecoder(rr.Body)
+		err := decoder.Decode(&posts)
+		if err != nil {
+			s.T().Errorf("%s: failed to decode response", test.name)
+		}
+
+		if len(posts) != test.expectedCount {
+			s.T().Errorf("%s: wrong number of posts returned; expected %d, but got %d", test.name, test.expectedCount, len(posts))
 		}
 	}
 }
