@@ -13,6 +13,8 @@ paths:
     $ref: ./paths/reverse_chronological_timeline_posts.yml
   /api/users/{id}/posts:
     $ref: ./paths/user_posts.yml
+  /api/users/{userID}:
+    $ref: ./paths/find_user_by_id.yml
   
 components:
   schemas:
@@ -28,3 +30,5 @@ components:
       $ref: ./components/responses/get_reverse_chronological_home_timeline_response.yml
     GetUserPostsTimelineResponse:
       $ref: ./components/responses/get_user_posts_timeline_response.yml
+    FindUserByIDResponse:
+      $ref: ./components/responses/find_user_by_id_response.yml
