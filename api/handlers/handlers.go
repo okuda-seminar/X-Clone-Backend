@@ -9,8 +9,8 @@ import (
 	"time"
 	"x-clone-backend/api/transfers"
 	"x-clone-backend/domain/entities"
-	"x-clone-backend/domain/repositories"
 	openapi "x-clone-backend/gen"
+	"x-clone-backend/usecases"
 
 	"github.com/google/uuid"
 )
@@ -474,9 +474,9 @@ func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 // GetUserPostsTimeline gets posts by a single user, specified by the requested user ID.
-func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, p repositories.PostsRepositoryInterface) {
+func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetSpecificUserPostsUsecase) {
 	userID := r.PathValue("id")
-	posts, err := p.GetSpecificUserPosts(userID)
+	posts, err := u.GetSpecificUserPosts(userID)
 	if err != nil {
 		http.Error(w, "Failed to get posts", http.StatusInternalServerError)
 	}
@@ -490,9 +490,9 @@ func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, p repositories
 }
 
 // GetReverseChronologicalHomeTimeline gets posts whose user_id is user or following user from posts table.
-func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, p repositories.PostsRepositoryInterface) {
+func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetUserAndFolloweePostsUsecase) {
 	userID := r.PathValue("id")
-	posts, err := p.GetUserAndFolloweePosts(userID)
+	posts, err := u.GetUserAndFolloweePosts(userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not get posts"), http.StatusInternalServerError)
 		return
