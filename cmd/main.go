@@ -11,6 +11,7 @@ import (
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
 	"x-clone-backend/infrastructure"
+	"x-clone-backend/usecases"
 )
 
 const (
@@ -27,6 +28,8 @@ func main() {
 	sever := api.NewServer(db)
 	mux := http.NewServeMux()
 	postsRepository := infrastructure.NewPostsRepository(db)
+	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)
+	getUserAndFolloweePostsUsecase := usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
 	mux.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreatePost(w, r, db)
@@ -66,11 +69,11 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /api/users/{id}/posts", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetUserPostsTimeline(w, r, postsRepository)
+		handlers.GetUserPostsTimeline(w, r, getSpecificUserPostsUsecase)
 	})
 
 	mux.HandleFunc("GET /api/users/{id}/timelines/reverse_chronological", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetReverseChronologicalHomeTimeline(w, r, postsRepository)
+		handlers.GetReverseChronologicalHomeTimeline(w, r, getUserAndFolloweePostsUsecase)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/following/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {

@@ -423,7 +423,7 @@ func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 		)
 		req.SetPathValue("id", test.userID)
 
-		GetUserPostsTimeline(rr, req, s.postsRepository)
+		GetUserPostsTimeline(rr, req, s.getSpecificUserPostsUsecase)
 		var posts []*entities.Post
 
 		decoder := json.NewDecoder(rr.Body)
@@ -480,7 +480,7 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 		)
 		req.SetPathValue("id", test.userID)
 
-		GetReverseChronologicalHomeTimeline(rr, req, s.postsRepository)
+		GetReverseChronologicalHomeTimeline(rr, req, s.getUserAndFolloweePostsUsecase)
 		var posts []*entities.Post
 
 		decoder := json.NewDecoder(rr.Body)

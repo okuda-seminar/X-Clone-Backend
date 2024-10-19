@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 	"testing"
-	"x-clone-backend/domain/repositories"
 	"x-clone-backend/infrastructure"
+	"x-clone-backend/usecases"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -68,9 +68,10 @@ func TestMain(m *testing.M) {
 
 type HandlersTestSuite struct {
 	suite.Suite
-	db              *sql.DB
-	resource        *dockertest.Resource
-	postsRepository repositories.PostsRepositoryInterface
+	db                             *sql.DB
+	resource                       *dockertest.Resource
+	getSpecificUserPostsUsecase    usecases.GetSpecificUserPostsUsecase
+	getUserAndFolloweePostsUsecase usecases.GetUserAndFolloweePostsUsecase
 }
 
 // SetupTest runs before each test in the suite.
@@ -106,8 +107,10 @@ func (s *HandlersTestSuite) SetupTest() {
 		log.Fatalln(err)
 	}
 
-	// Set up the posts repository.
-	s.postsRepository = infrastructure.NewPostsRepository(s.db)
+	// Set up usecases.
+	postsRepository := infrastructure.NewPostsRepository(s.db)
+	s.getSpecificUserPostsUsecase = usecases.NewGetSpecificUserPostsUsecase(postsRepository)
+	s.getUserAndFolloweePostsUsecase = usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
 	m.Up()
 }
