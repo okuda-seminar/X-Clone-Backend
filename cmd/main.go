@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 	"x-clone-backend/api"
 	"x-clone-backend/api/handlers"
@@ -31,6 +30,12 @@ func main() {
 	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)
 	getUserAndFolloweePostsUsecase := usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
+	usersRepository := infrastructure.NewUsersRepository(db)
+	deleteUserUsecase := usecases.NewDeleteUserUsecase(usersRepository)
+	getspecificUserUsecase := usecases.NewGetSpecificUserUsecase(usersRepository)
+	likePostUsecase := usecases.NewLikePostUsecase(usersRepository)
+	unlikePostUsecase := usecases.NewUnlikePostUsecase(usersRepository)
+
 	mux.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreatePost(w, r, db)
 	})
@@ -48,20 +53,19 @@ func main() {
 	})
 
 	mux.HandleFunc("DELETE /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteUserByID(w, r, db)
+		handlers.DeleteUserByID(w, r, deleteUserUsecase)
 	})
 
 	mux.HandleFunc("GET /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.FindUserByID(w, r, db)
-		slog.Info("GET /api/users/{userID} was called.")
+		handlers.FindUserByID(w, r, getspecificUserUsecase)
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/likes", func(w http.ResponseWriter, r *http.Request) {
-		handlers.LikePost(w, r, db)
+		handlers.LikePost(w, r, likePostUsecase)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{id}/likes/{post_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UnlikePost(w, r, db)
+		handlers.UnlikePost(w, r, unlikePostUsecase)
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/following", func(w http.ResponseWriter, r *http.Request) {

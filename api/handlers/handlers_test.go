@@ -45,7 +45,7 @@ func (s *HandlersTestSuite) TestCreateUser() {
 		req := httptest.NewRequest("POST", "/api/users", strings.NewReader(test.body))
 		rr := httptest.NewRecorder()
 
-		CreateUser(rr, req, s.db)
+		CreateUser(rr, req, s.createUserUsecase)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
@@ -167,7 +167,7 @@ func (s *HandlersTestSuite) TestLikePost() {
 		req.SetPathValue("id", test.userID)
 
 		rr := httptest.NewRecorder()
-		LikePost(rr, req, s.db)
+		LikePost(rr, req, s.likePostUsecase)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf(
@@ -225,7 +225,7 @@ func (s *HandlersTestSuite) TestUnlikePost() {
 		req.SetPathValue("post_id", test.postID)
 
 		rr := httptest.NewRecorder()
-		UnlikePost(rr, req, s.db)
+		UnlikePost(rr, req, s.unlikePostUsecase)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf(
@@ -512,7 +512,7 @@ func (s *HandlersTestSuite) newTestUser(body string) string {
 		strings.NewReader(body),
 	)
 	rr := httptest.NewRecorder()
-	CreateUser(rr, req, s.db)
+	CreateUser(rr, req, s.createUserUsecase)
 
 	var user entities.User
 	_ = json.NewDecoder(rr.Body).Decode(&user)
@@ -544,7 +544,7 @@ func (s *HandlersTestSuite) newTestLike(userID string, postID string) {
 	req.SetPathValue("id", userID)
 
 	rr := httptest.NewRecorder()
-	LikePost(rr, req, s.db)
+	LikePost(rr, req, s.likePostUsecase)
 }
 
 func (s *HandlersTestSuite) newTestFollow(sourceUserID string, targetUserID string) {
