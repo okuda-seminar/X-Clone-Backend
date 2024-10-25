@@ -3,12 +3,14 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 	"x-clone-backend/api/transfers"
 	"x-clone-backend/domain/entities"
+	domainerrors "x-clone-backend/domain/errors"
 	openapi "x-clone-backend/gen"
 	"x-clone-backend/usecases"
 
@@ -17,7 +19,7 @@ import (
 
 // CreateUser creates a new user with the specified useranme and display name,
 // then, inserts it into users table.
-func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUsecase) {
 	var body openapi.CreateUserRequest
 
 	decoder := json.NewDecoder(r.Body)
@@ -26,16 +28,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
 		return
 	}
-
-	query := `INSERT INTO users (username, display_name, bio, is_private) VALUES ($1, $2, $3, $4)
-		RETURNING id, created_at, updated_at`
-
-	var (
-		id                   uuid.UUID
-		createdAt, updatedAt time.Time
-	)
-
-	err = db.QueryRow(query, body.Username, body.DisplayName, "", false).Scan(&id, &createdAt, &updatedAt)
+	user, err := u.CreateUser(body.Username, body.DisplayName)
 	if err != nil {
 		var code int
 
@@ -46,16 +39,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		}
 		http.Error(w, fmt.Sprintln("Could not create a user."), code)
 		return
-	}
-
-	user := entities.User{
-		ID:          id,
-		Username:    body.Username,
-		DisplayName: body.DisplayName,
-		Bio:         "",
-		IsPrivate:   false,
-		CreatedAt:   createdAt,
-		UpdatedAt:   updatedAt,
 	}
 	res := transfers.ToCreateUserResponse(&user)
 
@@ -72,24 +55,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 // DeleteUser deletes a user with the specified user ID.
 // If a target user does not exist, it returns 404.
-func DeleteUserByID(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func DeleteUserByID(w http.ResponseWriter, r *http.Request, u usecases.DeleteUserUsecase) {
 	userID := r.PathValue("userID")
 
 	slog.Info(fmt.Sprintf("DELETE /api/users was called with %s.", userID))
 
-	query := `DELETE FROM users WHERE id = $1`
-	res, err := db.Exec(query, userID)
+	err := u.DeleteUser(userID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not delete a user (ID: %s)\n", userID), http.StatusInternalServerError)
-		return
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not delete a user (ID: %s)\n", userID), http.StatusInternalServerError)
-		return
-	}
-	if count != 1 {
-		http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", userID), http.StatusNotFound)
+		switch {
+		case errors.Is(err, domainerrors.ErrUserNotFound):
+			http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", userID), http.StatusNotFound)
+		default:
+			http.Error(w, fmt.Sprintf("Could not delete a user (ID: %s)\n", userID), http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -97,22 +75,12 @@ func DeleteUserByID(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 // FindUserByID finds a user with the specified ID.
-func FindUserByID(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func FindUserByID(w http.ResponseWriter, r *http.Request, u usecases.GetSpecificUserUsecase) {
 	userID := r.PathValue("userID")
 
-	query := `SELECT * FROM users WHERE id = $1`
-	row := db.QueryRow(query, userID)
+	slog.Info("GET /api/users/{userID} was called.")
 
-	var user entities.User
-	err := row.Scan(
-		&user.ID,
-		&user.Username,
-		&user.DisplayName,
-		&user.Bio,
-		&user.IsPrivate,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
+	user, err := u.GetSpecificUser(userID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not find a user (ID: %s)\n", userID), http.StatusNotFound)
 		return
@@ -200,7 +168,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 // LikePost creates a like with the specified user_id and post_id,
 // then, inserts it into likes table.
-func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func LikePost(w http.ResponseWriter, r *http.Request, u usecases.LikePostUsecase) {
 	var body likePostRequestBody
 
 	decoder := json.NewDecoder(r.Body)
@@ -214,9 +182,7 @@ func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	slog.Info(fmt.Sprintf("POST /api/users/{id}/likes was called with %s.", userID))
 
-	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
-
-	_, err = db.Exec(query, userID, body.PostID)
+	err = u.LikePost(userID, body.PostID)
 	if err != nil {
 		http.Error(w, fmt.Sprintln("Could not create a like."), http.StatusInternalServerError)
 		return
@@ -225,26 +191,20 @@ func LikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func UnlikePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func UnlikePost(w http.ResponseWriter, r *http.Request, u usecases.UnlikePostUsecase) {
 	userID := r.PathValue("id")
 	postID := r.PathValue("post_id")
 
 	slog.Info(fmt.Sprintf("DELETE /api/users/{id}/likes/{post_id} was called with %s and %s.", userID, postID))
 
-	query := "DELETE FROM likes WHERE user_id = $1 AND post_id = $2"
-	res, err := db.Exec(query, userID, postID)
+	err := u.UnlikePost(userID, postID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not delete a like: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	count, err := res.RowsAffected()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not delete a like: %v", err), http.StatusInternalServerError)
-		return
-	}
-	if count != 1 {
-		http.Error(w, "No row found to delete", http.StatusNotFound)
+		switch {
+		case errors.Is(err, domainerrors.ErrLikeNotFound):
+			http.Error(w, "No row found to delete", http.StatusNotFound)
+		default:
+			http.Error(w, fmt.Sprintf("Could not delete a like: %v", err), http.StatusInternalServerError)
+		}
 		return
 	}
 

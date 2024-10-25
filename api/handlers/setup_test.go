@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"x-clone-backend/domain/repositories"
 	"x-clone-backend/infrastructure"
 	"x-clone-backend/usecases"
 
@@ -72,6 +73,10 @@ type HandlersTestSuite struct {
 	resource                       *dockertest.Resource
 	getSpecificUserPostsUsecase    usecases.GetSpecificUserPostsUsecase
 	getUserAndFolloweePostsUsecase usecases.GetUserAndFolloweePostsUsecase
+	usersRepository                repositories.UsersRepositoryInterface
+	createUserUsecase              usecases.CreateUserUsecase
+	likePostUsecase                usecases.LikePostUsecase
+	unlikePostUsecase              usecases.UnlikePostUsecase
 }
 
 // SetupTest runs before each test in the suite.
@@ -111,6 +116,11 @@ func (s *HandlersTestSuite) SetupTest() {
 	postsRepository := infrastructure.NewPostsRepository(s.db)
 	s.getSpecificUserPostsUsecase = usecases.NewGetSpecificUserPostsUsecase(postsRepository)
 	s.getUserAndFolloweePostsUsecase = usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
+
+	s.usersRepository = infrastructure.NewUsersRepository(s.db)
+	s.createUserUsecase = usecases.NewCreateUserUsecase(s.usersRepository)
+	s.likePostUsecase = usecases.NewLikePostUsecase(s.usersRepository)
+	s.unlikePostUsecase = usecases.NewUnlikePostUsecase(s.usersRepository)
 
 	m.Up()
 }
