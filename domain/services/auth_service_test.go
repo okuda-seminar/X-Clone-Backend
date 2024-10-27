@@ -2,14 +2,14 @@ package services
 
 import (
 	"testing"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestGenerateJWT tests the JWT generation functionality of AuthService.
-// It verifies that a JWT is generated correctly with valid claims and
-// is successfully parsed using the same secret key.
+// It ensures that a token is generated without errors and is not empty.
 func TestGenerateJWT(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := NewAuthService(secretKey)
@@ -17,25 +17,71 @@ func TestGenerateJWT(t *testing.T) {
 	userID := 1
 	username := "test_user"
 
-	// Generate the JWT for a specified user ID and username.
 	signedToken, err := authService.GenerateJWT(userID, username)
 
-	// Validate that no error occurred and the token is not empty.
 	assert.NoError(t, err)
 	assert.NotEmpty(t, signedToken)
+}
 
-	// Parse the generated JWT to verify its integrity.
-	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
+// TestValidateJWT tests the validation of a valid JWT in AuthService.
+// It checks if the generated token's claims match the expected values.
+func TestValidateJWT(t *testing.T) {
+	secretKey := "test_secret_key"
+	authService := NewAuthService(secretKey)
 
-	// Ensure the token is valid and parsed correctly.
+	userID := 1
+	username := "test_user"
+
+	signedToken, err := authService.GenerateJWT(userID, username)
 	assert.NoError(t, err)
-	assert.True(t, parsedToken.Valid)
 
-	// Check the claims in the token.
-	claims, ok := parsedToken.Claims.(jwt.MapClaims)
-	assert.True(t, ok)
+	claims, err := authService.ValidateJWT(signedToken)
+	assert.NoError(t, err)
+
 	assert.Equal(t, float64(userID), claims["sub"])
 	assert.Equal(t, username, claims["username"])
+}
+
+// TestExpiredJWT tests the validation of an expired JWT.
+// It verifies that the error returned is "token has expired".
+func TestExpiredJWT(t *testing.T) {
+	secretKey := "test_secret_key"
+	authService := NewAuthService(secretKey)
+
+	expiredToken := generateExpiredJWT(secretKey)
+
+	_, err := authService.ValidateJWT(expiredToken)
+	assert.EqualError(t, err, "token has expired")
+}
+
+// TestInvalidSignatureJWT tests the validation of a JWT with an invalid signature.
+// It ensures that the error returned is "invalid token".
+func TestInvalidSignatureJWT(t *testing.T) {
+	secretKey := "test_secret_key"
+	authService := NewAuthService(secretKey)
+
+	userID := 1
+	username := "test_user"
+
+	signedToken, err := authService.GenerateJWT(userID, username)
+	assert.NoError(t, err)
+
+	invalidToken := signedToken[:len(signedToken)-1] + "x"
+
+	_, err = authService.ValidateJWT(invalidToken)
+	assert.EqualError(t, err, "invalid token")
+}
+
+// generateExpiredJWT generates an expired JWT for testing purposes.
+func generateExpiredJWT(secretKey string) string {
+	claims := jwt.MapClaims{
+		"sub":       1,
+		"username":  "test_user",
+		"exp":       time.Now().Add(-time.Hour).Unix(),
+		"token_exp": time.Now().Add(-time.Hour).Unix(),
+	}
+
+	unsignedToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, _ := unsignedToken.SignedString([]byte(secretKey))
+	return signedToken
 }
