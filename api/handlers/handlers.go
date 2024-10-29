@@ -28,7 +28,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUse
 		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
 		return
 	}
-	user, err := u.CreateUser(body.Username, body.DisplayName)
+
+	user, err := u.CreateUser(body.Username, body.DisplayName, body.Password)
 	if err != nil {
 		var code int
 
