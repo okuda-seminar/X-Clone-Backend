@@ -11,6 +11,7 @@ import (
 type CreateUserRequest struct {
 	DisplayName string `json:"display_name"`
 	Username    string `json:"username"`
+	Password    string `json:"password"`
 }
 
 // CreateUserResponse defines model for create_user_response.

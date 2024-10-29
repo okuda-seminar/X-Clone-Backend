@@ -7,7 +7,7 @@ import (
 )
 
 type UsersRepositoryInterface interface {
-	CreateUser(username, displayName string) (entities.User, error)
+	CreateUser(username, displayName, password string) (entities.User, error)
 	DeleteUser(userID string) error
 	GetSpecificUser(userID string) (entities.User, error)
 	LikePost(userID string, postID uuid.UUID) error

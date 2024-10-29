@@ -21,7 +21,7 @@ func (s *HandlersTestSuite) TestCreateUser() {
 	}{
 		{
 			name:         "create user",
-			body:         `{ "username": "test", "display_name": "test" }`,
+			body:         `{ "username": "test", "display_name": "test", "password": "securepassword" }`,
 			expectedCode: http.StatusCreated,
 		},
 		{
@@ -36,7 +36,7 @@ func (s *HandlersTestSuite) TestCreateUser() {
 		},
 		{
 			name:         "duplicated username",
-			body:         `{ "username": "test", "display_name": "duplicated" }`,
+			body:         `{ "username": "test", "display_name": "duplicated", "password": "securepassword" }`,
 			expectedCode: http.StatusConflict,
 		},
 	}
@@ -54,8 +54,8 @@ func (s *HandlersTestSuite) TestCreateUser() {
 }
 
 func (s *HandlersTestSuite) TestDeletePost() {
-	userID := s.newTestUser(`{ "username": "test user", "display_name": "test user" }`)
-	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post"}`, userID))
+	userID := s.newTestUser(`{ "username": "test user", "display_name": "test user", "password": "securepassword" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post" }`, userID))
 
 	tests := []struct {
 		name         string
@@ -95,7 +95,6 @@ func (s *HandlersTestSuite) TestDeletePost() {
 				rr.Code,
 			)
 		}
-
 	}
 }
 
@@ -104,9 +103,9 @@ func (s *HandlersTestSuite) TestLikePost() {
 	// from the users and posts table.
 	// Therefore, users and posts are created
 	// for testing purposes to obtain these IDs.
-	authorUserID := s.newTestUser(`{ "username": "author", "display_name": "author" }`)
-	likerUserID := s.newTestUser(`{ "username": "liker", "display_name": "liker" }`)
-	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post"}`, authorUserID))
+	authorUserID := s.newTestUser(`{ "username": "author", "display_name": "author", "password": "securepassword" }`)
+	likerUserID := s.newTestUser(`{ "username": "liker", "display_name": "liker", "password": "securepassword" }`)
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post" }`, authorUserID))
 
 	tests := []struct {
 		name         string
@@ -185,7 +184,7 @@ func (s *HandlersTestSuite) TestUnlikePost() {
 	// from the users and posts table.
 	// Therefore, users and posts are created
 	// for testing purposes to obtain these IDs.
-	userID := s.newTestUser(`{ "username": "user", "display_name": "user" }`)
+	userID := s.newTestUser(`{ "username": "user", "display_name": "user", "password": "securepassword" }`)
 	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post" }`, userID))
 	s.newTestLike(userID, postID)
 
@@ -237,15 +236,14 @@ func (s *HandlersTestSuite) TestUnlikePost() {
 		}
 
 	}
-
 }
 
 func (s *HandlersTestSuite) TestCreateMuting() {
 	// CreateMuting must use existing user IDs from the user table
 	// for both the source user ID and target user ID.
 	// Therefore, users are created for testing purposes to obtain these IDs.
-	sourceUserID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
-	targetUserID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
+	sourceUserID := s.newTestUser(`{ "username": "test", "display_name": "test", "password": "securepassword" }`)
+	targetUserID := s.newTestUser(`{ "username": "test2", "display_name": "test2", "password": "securepassword" }`)
 
 	tests := []struct {
 		name         string
@@ -297,7 +295,7 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 }
 
 func (s *HandlersTestSuite) TestCreateRepost() {
-	userID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
+	userID := s.newTestUser(`{ "username": "test", "display_name": "test", "password": "securepassword" }`)
 	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
 
 	tests := []struct {
@@ -353,7 +351,7 @@ func (s *HandlersTestSuite) TestCreateRepost() {
 }
 
 func (s *HandlersTestSuite) TestDeleteRepost() {
-	userID := s.newTestUser(`{ "username": "test", "display_name": "test" }`)
+	userID := s.newTestUser(`{ "username": "test", "display_name": "test", "password": "securepassword" }`)
 	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
 	s.newTestRepost(userID, postID)
 
@@ -386,16 +384,14 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
 		}
-
 	}
-
 }
 
 func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 	// This test method verifies the number of posts in the response body.
-	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
+	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
-	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
+	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2", "password": "securepassword" }`)
 
 	tests := []struct {
 		name          string
@@ -440,13 +436,13 @@ func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 
 func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 	// This test method verifies the number of posts in the response body.
-	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1" }`)
+	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
-	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2" }`)
+	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test2" }`, user2ID))
-	user3ID := s.newTestUser(`{ "username": "test3", "display_name": "test3" }`)
+	user3ID := s.newTestUser(`{ "username": "test3", "display_name": "test3", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test3" }`, user3ID))
-	user4ID := s.newTestUser(`{ "username": "test4", "display_name": "test4" }`)
+	user4ID := s.newTestUser(`{ "username": "test4", "display_name": "test4", "password": "securepassword" }`)
 	s.newTestFollow(user3ID, user2ID)
 
 	tests := []struct {

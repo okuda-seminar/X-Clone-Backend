@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -72,4 +73,12 @@ func (s *AuthService) ValidateJWT(token string) (jwt.MapClaims, error) {
 	// Log and return the claims if the token is valid
 	s.logger.Info("Token validated successfully", "claims", claims)
 	return claims, nil
+}
+
+func HashPassword(password string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
 }

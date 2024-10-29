@@ -18,8 +18,8 @@ func NewUsersRepository(db *sql.DB) repositories.UsersRepositoryInterface {
 	return &UsersRepository{db}
 }
 
-func (r *UsersRepository) CreateUser(username, displayName string) (entities.User, error) {
-	query := `INSERT INTO users (username, display_name, bio, is_private) VALUES ($1, $2, $3, $4)
+func (r *UsersRepository) CreateUser(username, displayName, password string) (entities.User, error) {
+	query := `INSERT INTO users (username, display_name, password, bio, is_private) VALUES ($1, $2, $3, $4, $5)
         RETURNING id, created_at, updated_at`
 
 	var (
@@ -27,7 +27,7 @@ func (r *UsersRepository) CreateUser(username, displayName string) (entities.Use
 		createdAt, updatedAt time.Time
 	)
 
-	err := r.DB.QueryRow(query, username, displayName, "", false).Scan(&id, &createdAt, &updatedAt)
+	err := r.DB.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		return entities.User{}, err
 	}
@@ -40,6 +40,7 @@ func (r *UsersRepository) CreateUser(username, displayName string) (entities.Use
 		IsPrivate:   false,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
+		Password:    password,
 	}
 	return user, nil
 }
