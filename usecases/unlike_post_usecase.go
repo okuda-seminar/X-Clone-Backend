@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"database/sql"
 	"x-clone-backend/domain/repositories"
 )
 
@@ -17,6 +18,8 @@ func NewUnlikePostUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *unlikePostUsecase) UnlikePost(userID string, postID string) error {
-	err := p.usersRepository.UnlikePost(userID, postID)
+	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
+		return p.usersRepository.UnlikePost(tx, userID, postID)
+	})
 	return err
 }

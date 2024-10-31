@@ -35,6 +35,12 @@ func main() {
 	getspecificUserUsecase := usecases.NewGetSpecificUserUsecase(usersRepository)
 	likePostUsecase := usecases.NewLikePostUsecase(usersRepository)
 	unlikePostUsecase := usecases.NewUnlikePostUsecase(usersRepository)
+	followUserUsecase := usecases.NewFollowUserUsecase(usersRepository)
+	unfollowUserUsecase := usecases.NewUnfollowUserUsecase(usersRepository)
+	muteUserUsecase := usecases.NewMuteUserUsecase(usersRepository)
+	unmuteUserUsecase := usecases.NewUnmuteUserUsecase(usersRepository)
+	blockUserUsecase := usecases.NewBlockUserUsecase(usersRepository)
+	unblockUserUsecase := usecases.NewUnblockUserUsecase(usersRepository)
 
 	mux.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreatePost(w, r, db)
@@ -69,7 +75,7 @@ func main() {
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/following", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateFollowship(w, r, db)
+		handlers.CreateFollowship(w, r, followUserUsecase)
 	})
 
 	mux.HandleFunc("GET /api/users/{id}/posts", func(w http.ResponseWriter, r *http.Request) {
@@ -81,23 +87,23 @@ func main() {
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/following/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteFollowship(w, r, db)
+		handlers.DeleteFollowship(w, r, unfollowUserUsecase)
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/muting", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateMuting(w, r, db)
+		handlers.CreateMuting(w, r, muteUserUsecase)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/muting/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteMuting(w, r, db)
+		handlers.DeleteMuting(w, r, unmuteUserUsecase)
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/blocking", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateBlocking(w, r, db)
+		handlers.CreateBlocking(w, r, blockUserUsecase)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/blocking/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteBlocking(w, r, db)
+		handlers.DeleteBlocking(w, r, unblockUserUsecase)
 	})
 
 	mux.HandleFunc("/api/notifications", func(w http.ResponseWriter, r *http.Request) {
