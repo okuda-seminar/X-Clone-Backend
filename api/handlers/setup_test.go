@@ -77,6 +77,8 @@ type HandlersTestSuite struct {
 	createUserUsecase              usecases.CreateUserUsecase
 	likePostUsecase                usecases.LikePostUsecase
 	unlikePostUsecase              usecases.UnlikePostUsecase
+	followUserUsecase              usecases.FollowUserUsecase
+	muteUserUsecase                usecases.MuteUserUsecase
 }
 
 // SetupTest runs before each test in the suite.
@@ -121,6 +123,8 @@ func (s *HandlersTestSuite) SetupTest() {
 	s.createUserUsecase = usecases.NewCreateUserUsecase(s.usersRepository)
 	s.likePostUsecase = usecases.NewLikePostUsecase(s.usersRepository)
 	s.unlikePostUsecase = usecases.NewUnlikePostUsecase(s.usersRepository)
+	s.followUserUsecase = usecases.NewFollowUserUsecase(s.usersRepository)
+	s.muteUserUsecase = usecases.NewMuteUserUsecase(s.usersRepository)
 
 	m.Up()
 }

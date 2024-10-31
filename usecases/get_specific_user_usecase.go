@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"database/sql"
 	"x-clone-backend/domain/entities"
 	"x-clone-backend/domain/repositories"
 )
@@ -18,7 +19,13 @@ func NewGetSpecificUserUsecase(usersRepository repositories.UsersRepositoryInter
 }
 
 func (p *getSpecificUserUsecase) GetSpecificUser(userID string) (entities.User, error) {
-	user, err := p.usersRepository.GetSpecificUser(userID)
+	var user entities.User
+	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
+		var err error
+		user, err = p.usersRepository.GetSpecificUser(tx, userID)
+		return err
+	})
+
 	if err != nil {
 		return entities.User{}, err
 	}

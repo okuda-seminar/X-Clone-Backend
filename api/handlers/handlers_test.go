@@ -281,7 +281,7 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 		req.SetPathValue("id", sourceUserID)
 
 		rr := httptest.NewRecorder()
-		CreateMuting(rr, req, s.db)
+		CreateMuting(rr, req, s.muteUserUsecase)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf(
@@ -552,7 +552,7 @@ func (s *HandlersTestSuite) newTestFollow(sourceUserID string, targetUserID stri
 	req.SetPathValue("id", sourceUserID)
 
 	rr := httptest.NewRecorder()
-	CreateFollowship(rr, req, s.db)
+	CreateFollowship(rr, req, s.followUserUsecase)
 }
 
 // TestHandlersTestSuite runs all of the tests attached to HandlersTestSuite.

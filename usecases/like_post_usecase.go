@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"database/sql"
 	"x-clone-backend/domain/repositories"
 
 	"github.com/google/uuid"
@@ -19,6 +20,8 @@ func NewLikePostUsecase(usersRepository repositories.UsersRepositoryInterface) L
 }
 
 func (p *likePostUsecase) LikePost(userID string, postID uuid.UUID) error {
-	err := p.usersRepository.LikePost(userID, postID)
+	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
+		return p.usersRepository.LikePost(tx, userID, postID)
+	})
 	return err
 }
