@@ -13,7 +13,7 @@ get:
     "200":
       description: A collection of posts by the specified user and users they follow.
       content:
-        application/json:
+        text/event-stream:
           schema:
             $ref: ../openapi.yml#/components/schemas/GetReverseChronologicalHomeTimelineResponse
     "500":

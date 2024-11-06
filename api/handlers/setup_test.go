@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"testing"
 	"x-clone-backend/domain/repositories"
 	"x-clone-backend/infrastructure"
@@ -79,6 +80,8 @@ type HandlersTestSuite struct {
 	unlikePostUsecase              usecases.UnlikePostUsecase
 	followUserUsecase              usecases.FollowUserUsecase
 	muteUserUsecase                usecases.MuteUserUsecase
+	userChannels                   map[string]chan []byte
+	mu                             sync.Mutex
 }
 
 // SetupTest runs before each test in the suite.
@@ -125,6 +128,9 @@ func (s *HandlersTestSuite) SetupTest() {
 	s.unlikePostUsecase = usecases.NewUnlikePostUsecase(s.usersRepository)
 	s.followUserUsecase = usecases.NewFollowUserUsecase(s.usersRepository)
 	s.muteUserUsecase = usecases.NewMuteUserUsecase(s.usersRepository)
+
+	s.mu = sync.Mutex{}
+	s.userChannels = make(map[string]chan []byte)
 
 	m.Up()
 }
