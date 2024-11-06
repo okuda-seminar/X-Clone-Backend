@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 	"x-clone-backend/domain/entities"
 
 	"github.com/google/uuid"
@@ -465,24 +469,53 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 			userID:        user4ID,
 			expectedCount: 0,
 		},
+		{
+			name:          "get posts already posted and posts posted during timeline access",
+			userID:        user3ID,
+			expectedCount: 3,
+		},
 	}
 
 	for _, test := range tests {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 		rr := httptest.NewRecorder()
 		req := httptest.NewRequest(
 			"GET",
 			"/api/users/{id}/timelines/reverse_chronological",
 			strings.NewReader(""),
-		)
+		).WithContext(ctx)
 		req.SetPathValue("id", test.userID)
 
-		GetReverseChronologicalHomeTimeline(rr, req, s.getUserAndFolloweePostsUsecase)
-		var posts []*entities.Post
+		// GetReverseChronologicalHomeTimeline(rr, req, s.getUserAndFolloweePostsUsecase, &s.mu, &s.userChannels)
+		var wg sync.WaitGroup
 
-		decoder := json.NewDecoder(rr.Body)
-		err := decoder.Decode(&posts)
-		if err != nil {
-			s.T().Errorf("%s: failed to decode response", test.name)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			GetReverseChronologicalHomeTimeline(rr, req, s.getUserAndFolloweePostsUsecase, &s.mu, &s.userChannels)
+		}()
+		var posts []entities.Post
+		if test.name == "get posts already posted and posts posted during timeline access" {
+			time.Sleep(100 * time.Millisecond)
+			_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test5" }`, test.userID))
+		}
+
+		wg.Wait()
+		scanner := bufio.NewScanner(rr.Body)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, "data:") {
+				jsonData := strings.TrimPrefix(line, "data: ")
+				var newPosts []entities.Post
+
+				err := json.Unmarshal([]byte(jsonData), &newPosts)
+				if err != nil {
+					s.T().Errorf("Failed to decode JSON: %v", err)
+				}
+				posts = append(posts, newPosts...)
+			}
 		}
 
 		if len(posts) != test.expectedCount {
@@ -523,7 +556,7 @@ func (s *HandlersTestSuite) newTestPost(body string) string {
 		strings.NewReader(body),
 	)
 	rr := httptest.NewRecorder()
-	CreatePost(rr, req, s.db)
+	CreatePost(rr, req, s.db, &s.mu, &s.userChannels)
 
 	var post entities.Post
 	_ = json.NewDecoder(rr.Body).Decode(&post)

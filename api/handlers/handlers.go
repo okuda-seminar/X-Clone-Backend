@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 	"x-clone-backend/api/transfers"
 	"x-clone-backend/domain/entities"
@@ -100,7 +102,7 @@ func FindUserByID(w http.ResponseWriter, r *http.Request, u usecases.GetSpecific
 
 // CreatePost creates a new post with the specified user_id and text,
 // then, inserts it into posts table.
-func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan []byte) {
 	var body createPostRequestBody
 
 	decoder := json.NewDecoder(r.Body)
@@ -130,6 +132,42 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		Text:      body.Text,
 		CreatedAt: createdAt,
 	}
+
+	go func(userID uuid.UUID, userChan *map[string]chan []byte) {
+		var posts []entities.Post
+		posts = append(posts, post)
+		jsonData, err := json.Marshal(posts)
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
+		rows, err := db.Query(query, userID.String())
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				log.Fatalln(err)
+				return
+			}
+
+			ids = append(ids, id)
+		}
+		ids = append(ids, userID)
+		for _, id := range ids {
+			mu.Lock()
+			if userChan, ok := (*usersChan)[id.String()]; ok {
+				userChan <- jsonData
+			}
+			mu.Unlock()
+		}
+
+	}(body.UserID, usersChan)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -397,7 +435,7 @@ func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, u usecases.Get
 }
 
 // GetReverseChronologicalHomeTimeline gets posts whose user_id is user or following user from posts table.
-func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetUserAndFolloweePostsUsecase) {
+func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetUserAndFolloweePostsUsecase, mu *sync.Mutex, usersChan *map[string]chan []byte) {
 	userID := r.PathValue("id")
 	posts, err := u.GetUserAndFolloweePosts(userID)
 	if err != nil {
@@ -405,10 +443,35 @@ func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(posts); err != nil {
-		http.Error(w, "Failed to convert to json", http.StatusInternalServerError)
+	mu.Lock()
+	if _, exists := (*usersChan)[userID]; !exists {
+		(*usersChan)[userID] = make(chan []byte, 1)
+	}
+	userChan := (*usersChan)[userID]
+	mu.Unlock()
+
+	jsonData, err := json.Marshal(posts)
+	if err != nil {
+		log.Println(err)
 		return
+	}
+	userChan <- jsonData
+
+	flusher, _ := w.(http.Flusher)
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	for {
+		select {
+		case jsonData := <-userChan:
+			fmt.Fprintf(w, "data: %s\n\n", jsonData)
+			flusher.Flush()
+		case <-r.Context().Done():
+			mu.Lock()
+			delete(*usersChan, userID)
+			mu.Unlock()
+			return
+		}
 	}
 }

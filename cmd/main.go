@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"x-clone-backend/api"
 	"x-clone-backend/api/handlers"
 	"x-clone-backend/api/middlewares"
@@ -24,6 +25,9 @@ func main() {
 	}
 	defer db.Close()
 
+	var userChannels = make(map[string]chan []byte)
+	var mu sync.Mutex
+
 	sever := api.NewServer(db)
 	mux := http.NewServeMux()
 	postsRepository := infrastructure.NewPostsRepository(db)
@@ -43,7 +47,7 @@ func main() {
 	unblockUserUsecase := usecases.NewUnblockUserUsecase(usersRepository)
 
 	mux.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreatePost(w, r, db)
+		handlers.CreatePost(w, r, db, &mu, &userChannels)
 	})
 
 	mux.HandleFunc("DELETE /api/posts/{postID}", func(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +87,7 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /api/users/{id}/timelines/reverse_chronological", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetReverseChronologicalHomeTimeline(w, r, getUserAndFolloweePostsUsecase)
+		handlers.GetReverseChronologicalHomeTimeline(w, r, getUserAndFolloweePostsUsecase, &mu, &userChannels)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/following/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {
