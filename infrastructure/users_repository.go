@@ -98,6 +98,7 @@ func (r *UsersRepository) GetSpecificUser(tx *sql.Tx, userID string) (entities.U
 		&user.IsPrivate,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.Password,
 	)
 	return user, err
 }
