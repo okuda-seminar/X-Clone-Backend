@@ -50,7 +50,12 @@ func (r *UsersRepository) CreateUser(tx *sql.Tx, username, displayName, password
 		createdAt, updatedAt time.Time
 	)
 
-	err := tx.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
+	var err error
+	if tx != nil {
+		err = tx.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
+	} else {
+		err = r.DB.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
+	}
 	if err != nil {
 		return entities.User{}, err
 	}
@@ -70,7 +75,13 @@ func (r *UsersRepository) CreateUser(tx *sql.Tx, username, displayName, password
 
 func (r *UsersRepository) DeleteUser(tx *sql.Tx, userID string) error {
 	query := `DELETE FROM users WHERE id = $1`
-	res, err := tx.Exec(query, userID)
+	var res sql.Result
+	var err error
+	if tx != nil {
+		res, err = tx.Exec(query, userID)
+	} else {
+		res, err = r.DB.Exec(query, userID)
+	}
 	if err != nil {
 		return err
 	}
@@ -87,7 +98,12 @@ func (r *UsersRepository) DeleteUser(tx *sql.Tx, userID string) error {
 
 func (r *UsersRepository) GetSpecificUser(tx *sql.Tx, userID string) (entities.User, error) {
 	query := `SELECT * FROM users WHERE id = $1`
-	row := tx.QueryRow(query, userID)
+	var row *sql.Row
+	if tx != nil {
+		row = tx.QueryRow(query, userID)
+	} else {
+		row = r.DB.QueryRow(query, userID)
+	}
 
 	var user entities.User
 	err := row.Scan(
@@ -106,13 +122,24 @@ func (r *UsersRepository) GetSpecificUser(tx *sql.Tx, userID string) (entities.U
 func (r *UsersRepository) LikePost(tx *sql.Tx, userID string, postID uuid.UUID) error {
 	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
 
-	_, err := tx.Exec(query, userID, postID)
+	var err error
+	if tx != nil {
+		_, err = tx.Exec(query, userID, postID)
+	} else {
+		_, err = r.DB.Exec(query, userID, postID)
+	}
 	return err
 }
 
 func (r *UsersRepository) UnlikePost(tx *sql.Tx, userID string, postID string) error {
 	query := "DELETE FROM likes WHERE user_id = $1 AND post_id = $2"
-	res, err := tx.Exec(query, userID, postID)
+	var res sql.Result
+	var err error
+	if tx != nil {
+		res, err = tx.Exec(query, userID, postID)
+	} else {
+		res, err = r.DB.Exec(query, userID, postID)
+	}
 	if err != nil {
 		return err
 	}
@@ -130,13 +157,24 @@ func (r *UsersRepository) UnlikePost(tx *sql.Tx, userID string, postID string) e
 func (r *UsersRepository) FollowUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `INSERT INTO followships (source_user_id, target_user_id) VALUES ($1, $2)`
 
-	_, err := tx.Exec(query, sourceUserID, targetUserID)
+	var err error
+	if tx != nil {
+		_, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	return err
 }
 
 func (r *UsersRepository) UnfollowUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `DELETE FROM followships WHERE source_user_id = $1 AND target_user_id = $2`
-	res, err := tx.Exec(query, sourceUserID, targetUserID)
+	var res sql.Result
+	var err error
+	if tx != nil {
+		res, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	if err != nil {
 		return err
 	}
@@ -154,13 +192,24 @@ func (r *UsersRepository) UnfollowUser(tx *sql.Tx, sourceUserID, targetUserID st
 func (r *UsersRepository) MuteUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `INSERT INTO mutes (source_user_id, target_user_id) VALUES ($1, $2)`
 
-	_, err := tx.Exec(query, sourceUserID, targetUserID)
+	var err error
+	if tx != nil {
+		_, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	return err
 }
 
 func (r *UsersRepository) UnmuteUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `DELETE FROM mutes WHERE source_user_id = $1 AND target_user_id = $2`
-	res, err := tx.Exec(query, sourceUserID, targetUserID)
+	var res sql.Result
+	var err error
+	if tx != nil {
+		res, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	if err != nil {
 		return err
 	}
@@ -177,7 +226,12 @@ func (r *UsersRepository) UnmuteUser(tx *sql.Tx, sourceUserID, targetUserID stri
 
 func (r *UsersRepository) BlockUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `INSERT INTO blocks (source_user_id, target_user_id) VALUES ($1, $2)`
-	_, err := tx.Exec(query, sourceUserID, targetUserID)
+	var err error
+	if tx != nil {
+		_, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	if err != nil {
 		return err
 	}
@@ -187,7 +241,13 @@ func (r *UsersRepository) BlockUser(tx *sql.Tx, sourceUserID, targetUserID strin
 
 func (r *UsersRepository) UnblockUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
 	query := `DELETE FROM blocks WHERE source_user_id = $1 AND target_user_id = $2`
-	res, err := tx.Exec(query, sourceUserID, targetUserID)
+	var res sql.Result
+	var err error
+	if tx != nil {
+		res, err = tx.Exec(query, sourceUserID, targetUserID)
+	} else {
+		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+	}
 	if err != nil {
 		return err
 	}

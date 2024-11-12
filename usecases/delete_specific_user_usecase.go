@@ -1,7 +1,6 @@
 package usecases
 
 import (
-	"database/sql"
 	"x-clone-backend/domain/repositories"
 )
 
@@ -18,8 +17,6 @@ func NewDeleteUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *deleteUserUsecase) DeleteUser(userID string) error {
-	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
-		return p.usersRepository.DeleteUser(tx, userID)
-	})
+	err := p.usersRepository.DeleteUser(nil, userID)
 	return err
 }
