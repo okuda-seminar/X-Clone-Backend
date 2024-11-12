@@ -1,7 +1,6 @@
 package usecases
 
 import (
-	"database/sql"
 	"x-clone-backend/domain/repositories"
 )
 
@@ -18,8 +17,6 @@ func NewUnfollowUserUsecase(usersRepository repositories.UsersRepositoryInterfac
 }
 
 func (p *unfollowUserUsecase) UnfollowUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
-		return p.usersRepository.UnfollowUser(tx, sourceUserID, targetUserID)
-	})
+	err := p.usersRepository.UnfollowUser(nil, sourceUserID, targetUserID)
 	return err
 }

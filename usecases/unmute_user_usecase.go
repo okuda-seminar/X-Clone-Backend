@@ -1,7 +1,6 @@
 package usecases
 
 import (
-	"database/sql"
 	"x-clone-backend/domain/repositories"
 )
 
@@ -18,8 +17,6 @@ func NewUnmuteUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *unmuteUserUsecase) UnmuteUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
-		return p.usersRepository.UnmuteUser(tx, sourceUserID, targetUserID)
-	})
+	err := p.usersRepository.UnmuteUser(nil, sourceUserID, targetUserID)
 	return err
 }

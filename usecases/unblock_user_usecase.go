@@ -1,7 +1,6 @@
 package usecases
 
 import (
-	"database/sql"
 	"x-clone-backend/domain/repositories"
 )
 
@@ -18,8 +17,6 @@ func NewUnblockUserUsecase(usersRepository repositories.UsersRepositoryInterface
 }
 
 func (p *unblockUserUsecase) UnblockUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.WithTransaction(func(tx *sql.Tx) error {
-		return p.usersRepository.UnblockUser(tx, sourceUserID, targetUserID)
-	})
+	err := p.usersRepository.UnblockUser(nil, sourceUserID, targetUserID)
 	return err
 }
