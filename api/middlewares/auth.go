@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"x-clone-backend/domain/services"
+	"x-clone-backend/internal/app/services"
 )
 
 type key int

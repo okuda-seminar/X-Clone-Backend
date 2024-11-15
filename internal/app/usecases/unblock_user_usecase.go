@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"x-clone-backend/domain/repositories"
+	"x-clone-backend/internal/domain/repositories"
 )
 
 type UnblockUserUsecase interface {

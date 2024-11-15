@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"x-clone-backend/domain/services"
+	"x-clone-backend/internal/app/services"
 
 	"github.com/dgrijalva/jwt-go"
 )

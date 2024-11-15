@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 	"x-clone-backend/api/handlers"
-	"x-clone-backend/infrastructure"
-	"x-clone-backend/usecases"
+	"x-clone-backend/internal/app/usecases"
+	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 )
 
 type Server struct {

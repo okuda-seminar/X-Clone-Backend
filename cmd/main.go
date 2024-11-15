@@ -10,8 +10,8 @@ import (
 	"x-clone-backend/api/middlewares"
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
-	"x-clone-backend/infrastructure"
-	"x-clone-backend/usecases"
+	"x-clone-backend/internal/app/usecases"
+	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 )
 
 const (
@@ -28,7 +28,7 @@ func main() {
 	var userChannels = make(map[string]chan []byte)
 	var mu sync.Mutex
 
-	sever := api.NewServer(db)
+	server := api.NewServer(db)
 	mux := http.NewServeMux()
 	postsRepository := infrastructure.NewPostsRepository(db)
 	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)
@@ -114,7 +114,7 @@ func main() {
 		fmt.Fprintf(w, "Notifications\n")
 	})
 
-	handler := middlewares.CORS(openapi.HandlerFromMux(&sever, mux))
+	handler := middlewares.CORS(openapi.HandlerFromMux(&server, mux))
 	s := http.Server{
 		Handler: handler,
 		Addr:    fmt.Sprintf(":%d", port),

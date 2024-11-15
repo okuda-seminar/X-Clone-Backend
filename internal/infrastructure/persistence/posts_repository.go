@@ -3,8 +3,8 @@ package infrastructure
 import (
 	"database/sql"
 	"time"
-	"x-clone-backend/domain/entities"
-	"x-clone-backend/domain/repositories"
+	"x-clone-backend/internal/domain/entities"
+	"x-clone-backend/internal/domain/repositories"
 
 	"github.com/google/uuid"
 )

@@ -7,9 +7,9 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"x-clone-backend/domain/repositories"
-	"x-clone-backend/infrastructure"
-	"x-clone-backend/usecases"
+	"x-clone-backend/internal/app/usecases"
+	"x-clone-backend/internal/domain/repositories"
+	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"

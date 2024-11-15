@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"x-clone-backend/domain/entities"
+	"x-clone-backend/internal/domain/entities"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
