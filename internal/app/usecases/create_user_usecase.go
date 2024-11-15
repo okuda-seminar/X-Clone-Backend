@@ -2,9 +2,9 @@ package usecases
 
 import (
 	"fmt"
-	"x-clone-backend/domain/entities"
-	"x-clone-backend/domain/repositories"
-	"x-clone-backend/domain/services"
+	"x-clone-backend/internal/app/services"
+	"x-clone-backend/internal/domain/entities"
+	"x-clone-backend/internal/domain/repositories"
 )
 
 type CreateUserUsecase interface {

@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"database/sql"
-	"x-clone-backend/domain/entities"
+	"x-clone-backend/internal/domain/entities"
 
 	"github.com/google/uuid"
 )

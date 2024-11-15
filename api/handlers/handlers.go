@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 	"x-clone-backend/api/transfers"
-	"x-clone-backend/domain/entities"
-	domainerrors "x-clone-backend/domain/errors"
 	openapi "x-clone-backend/gen"
-	"x-clone-backend/usecases"
+	domainerrors "x-clone-backend/internal/app/errors"
+	"x-clone-backend/internal/app/usecases"
+	"x-clone-backend/internal/domain/entities"
 
 	"github.com/google/uuid"
 )

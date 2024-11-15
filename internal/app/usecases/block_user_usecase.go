@@ -2,8 +2,8 @@ package usecases
 
 import (
 	"database/sql"
-	"x-clone-backend/domain/errors"
-	"x-clone-backend/domain/repositories"
+	"x-clone-backend/internal/app/errors"
+	"x-clone-backend/internal/domain/repositories"
 )
 
 type BlockUserUsecase interface {

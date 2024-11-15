@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"x-clone-backend/domain/entities"
+	"x-clone-backend/internal/domain/entities"
 )
 
 type PostsRepositoryInterface interface {

@@ -1,8 +1,8 @@
 package transfers
 
 import (
-	"x-clone-backend/domain/entities"
 	openapi "x-clone-backend/gen"
+	"x-clone-backend/internal/domain/entities"
 )
 
 func ToCreateUserResponse(in *entities.User) *openapi.CreateUserResponse {
