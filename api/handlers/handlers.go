@@ -102,7 +102,7 @@ func FindUserByID(w http.ResponseWriter, r *http.Request, u usecases.GetSpecific
 
 // CreatePost creates a new post with the specified user_id and text,
 // then, inserts it into posts table.
-func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan []byte) {
+func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
 	var body createPostRequestBody
 
 	decoder := json.NewDecoder(r.Body)
@@ -133,14 +133,9 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mut
 		CreatedAt: createdAt,
 	}
 
-	go func(userID uuid.UUID, userChan *map[string]chan []byte) {
-		var posts []entities.Post
-		posts = append(posts, post)
-		jsonData, err := json.Marshal(posts)
-		if err != nil {
-			log.Fatalln(err)
-			return
-		}
+	go func(userID uuid.UUID, userChan *map[string]chan entities.TimelineEvent) {
+		var posts []*entities.Post
+		posts = append(posts, &post)
 		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
 		rows, err := db.Query(query, userID.String())
 		if err != nil {
@@ -162,7 +157,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mut
 		for _, id := range ids {
 			mu.Lock()
 			if userChan, ok := (*usersChan)[id.String()]; ok {
-				userChan <- jsonData
+				userChan <- entities.TimelineEvent{EventType: entities.PostCreated, Posts: posts}
 			}
 			mu.Unlock()
 		}
@@ -182,25 +177,60 @@ func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mut
 
 // DeletePost deletes a post with the specified post ID.
 // If the post doesn't exist, it returns 404 error.
-func DeletePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func DeletePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
 	postID := r.PathValue("postID")
 	slog.Info(fmt.Sprintf("DELETE /api/posts was called with %s.", postID))
 
-	query := `DELETE FROM posts WHERE id = $1`
-	res, err := db.Exec(query, postID)
+	query := `DELETE FROM posts WHERE id = $1 RETURNING user_id, text, created_at`
+	var post entities.Post
+
+	err := db.QueryRow(query, postID).Scan(&post.UserID, &post.Text, &post.CreatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", postID), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, fmt.Sprintf("Could not delete a post (ID: %s)\n", postID), http.StatusInternalServerError)
+		return
+	}
+
+	post.ID, err = uuid.Parse(postID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not delete a post (ID: %s)\n", postID), http.StatusInternalServerError)
 		return
 	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not delete a post (ID: %s)\n", postID), http.StatusInternalServerError)
-		return
-	}
-	if count != 1 {
-		http.Error(w, fmt.Sprintf("No row found to delete (ID: %s)\n", postID), http.StatusNotFound)
-		return
-	}
+
+	go func(userID uuid.UUID, userChan *map[string]chan entities.TimelineEvent) {
+		var posts []*entities.Post
+		posts = append(posts, &post)
+		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
+		rows, err := db.Query(query, userID.String())
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				log.Fatalln(err)
+				return
+			}
+
+			ids = append(ids, id)
+		}
+		ids = append(ids, userID)
+		for _, id := range ids {
+			mu.Lock()
+			if userChan, ok := (*usersChan)[id.String()]; ok {
+				userChan <- entities.TimelineEvent{EventType: entities.PostDeleted, Posts: posts}
+			}
+			mu.Unlock()
+		}
+
+	}(post.UserID, usersChan)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -435,7 +465,7 @@ func GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, u usecases.Get
 }
 
 // GetReverseChronologicalHomeTimeline gets posts whose user_id is user or following user from posts table.
-func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetUserAndFolloweePostsUsecase, mu *sync.Mutex, usersChan *map[string]chan []byte) {
+func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, u usecases.GetUserAndFolloweePostsUsecase, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
 	userID := r.PathValue("id")
 	posts, err := u.GetUserAndFolloweePosts(userID)
 	if err != nil {
@@ -445,17 +475,12 @@ func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request,
 
 	mu.Lock()
 	if _, exists := (*usersChan)[userID]; !exists {
-		(*usersChan)[userID] = make(chan []byte, 1)
+		(*usersChan)[userID] = make(chan entities.TimelineEvent, 1)
 	}
 	userChan := (*usersChan)[userID]
 	mu.Unlock()
 
-	jsonData, err := json.Marshal(posts)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	userChan <- jsonData
+	userChan <- entities.TimelineEvent{EventType: entities.TimelineAccessed, Posts: posts}
 
 	flusher, _ := w.(http.Flusher)
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -464,8 +489,14 @@ func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request,
 
 	for {
 		select {
-		case jsonData := <-userChan:
-			fmt.Fprintf(w, "data: %s\n\n", jsonData)
+		case event := <-userChan:
+			jsonData, err := json.Marshal(event.Posts)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			fmt.Fprintf(w, "event: %d\ndata: %s\n\n", event.EventType, jsonData)
 			flusher.Flush()
 		case <-r.Context().Done():
 			mu.Lock()

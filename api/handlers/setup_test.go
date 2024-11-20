@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 	"x-clone-backend/internal/app/usecases"
+	"x-clone-backend/internal/domain/entities"
 	"x-clone-backend/internal/domain/repositories"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 
@@ -80,7 +81,7 @@ type HandlersTestSuite struct {
 	unlikePostUsecase              usecases.UnlikePostUsecase
 	followUserUsecase              usecases.FollowUserUsecase
 	muteUserUsecase                usecases.MuteUserUsecase
-	userChannels                   map[string]chan []byte
+	userChannels                   map[string]chan entities.TimelineEvent
 	mu                             sync.Mutex
 }
 
@@ -130,7 +131,7 @@ func (s *HandlersTestSuite) SetupTest() {
 	s.muteUserUsecase = usecases.NewMuteUserUsecase(s.usersRepository)
 
 	s.mu = sync.Mutex{}
-	s.userChannels = make(map[string]chan []byte)
+	s.userChannels = make(map[string]chan entities.TimelineEvent)
 
 	m.Up()
 }

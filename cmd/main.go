@@ -11,6 +11,7 @@ import (
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
 	"x-clone-backend/internal/app/usecases"
+	"x-clone-backend/internal/domain/entities"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 )
 
@@ -25,7 +26,7 @@ func main() {
 	}
 	defer db.Close()
 
-	var userChannels = make(map[string]chan []byte)
+	var userChannels = make(map[string]chan entities.TimelineEvent)
 	var mu sync.Mutex
 
 	server := api.NewServer(db)
@@ -51,7 +52,7 @@ func main() {
 	})
 
 	mux.HandleFunc("DELETE /api/posts/{postID}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeletePost(w, r, db)
+		handlers.DeletePost(w, r, db, &mu, &userChannels)
 	})
 
 	mux.HandleFunc("POST /api/posts/reposts", func(w http.ResponseWriter, r *http.Request) {
