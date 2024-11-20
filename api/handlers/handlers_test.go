@@ -89,7 +89,7 @@ func (s *HandlersTestSuite) TestDeletePost() {
 		req.SetPathValue("postID", test.postID)
 
 		rr := httptest.NewRecorder()
-		DeletePost(rr, req, s.db)
+		DeletePost(rr, req, s.db, &s.mu, &s.userChannels)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf(
@@ -441,7 +441,7 @@ func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 	// This test method verifies the number of posts in the response body.
 	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1", "password": "securepassword" }`)
-	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
+	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
 	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test2" }`, user2ID))
 	user3ID := s.newTestUser(`{ "username": "test3", "display_name": "test3", "password": "securepassword" }`)
@@ -474,10 +474,15 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 			userID:        user3ID,
 			expectedCount: 3,
 		},
+		{
+			name:          "get posts and posts deleted during timeline access",
+			userID:        user1ID,
+			expectedCount: 2,
+		},
 	}
 
 	for _, test := range tests {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		defer cancel()
 		rr := httptest.NewRecorder()
 		req := httptest.NewRequest(
@@ -499,6 +504,10 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 		if test.name == "get posts already posted and posts posted during timeline access" {
 			time.Sleep(100 * time.Millisecond)
 			_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test5" }`, test.userID))
+		}
+		if test.name == "get posts and posts deleted during timeline access" {
+			time.Sleep(100 * time.Millisecond)
+			s.newTestDeletePost(postID)
 		}
 
 		wg.Wait()
@@ -547,6 +556,14 @@ func (s *HandlersTestSuite) newTestUser(body string) string {
 	_ = json.NewDecoder(rr.Body).Decode(&user)
 	sourceUserID := user.ID.String()
 	return sourceUserID
+}
+
+func (s *HandlersTestSuite) newTestDeletePost(postID string) {
+	req := httptest.NewRequest("DELETE", "/api/posts{postID}", nil)
+	req.SetPathValue("postID", postID)
+
+	rr := httptest.NewRecorder()
+	DeletePost(rr, req, s.db, &s.mu, &s.userChannels)
 }
 
 func (s *HandlersTestSuite) newTestPost(body string) string {
