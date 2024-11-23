@@ -25,13 +25,23 @@ func (s *HandlersTestSuite) TestCreateUser() {
 		},
 		{
 			name:         "invalid body",
-			body:         `{ "invalid": "test" }`,
+			body:         `{ "invalid": "test", "password": "securepassword" }`,
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			name:         "duplicated username",
 			body:         `{ "username": "test", "display_name": "duplicated", "password": "securepassword" }`,
 			expectedCode: http.StatusConflict,
+		},
+		{
+			name:         "password too short",
+			body:         `{ "username": "test2", "display_name": "duplicated", "password": "shortpw" }`,
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "password too long",
+			body:         `{ "username": "test3", "display_name": "duplicated", "password": "longsecurepassword" }`,
+			expectedCode: http.StatusBadRequest,
 		},
 	}
 

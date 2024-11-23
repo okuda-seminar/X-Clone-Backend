@@ -1,8 +1,6 @@
 package usecases
 
 import (
-	"fmt"
-	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/domain/entities"
 	"x-clone-backend/internal/domain/repositories"
 )
@@ -19,13 +17,9 @@ func NewCreateUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 	return &createUserUsecase{usersRepository: usersRepository}
 }
 
-func (p *createUserUsecase) CreateUser(username, displayName, password string) (entities.User, error) {
+func (p *createUserUsecase) CreateUser(username, displayName, hashedPassword string) (entities.User, error) {
 	var user entities.User
-	hashedPassword, err := services.HashPassword(password)
-	if err != nil {
-		return entities.User{}, fmt.Errorf("could not hash the password: %w", err)
-	}
-	user, err = p.usersRepository.CreateUser(nil, username, displayName, hashedPassword)
+	user, err := p.usersRepository.CreateUser(nil, username, displayName, hashedPassword)
 	if err != nil {
 		return entities.User{}, err
 	}
