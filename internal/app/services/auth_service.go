@@ -6,9 +6,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	minPasswordLength = 8
+	maxPasswordLength = 15
+
+	// Token expiration times
+	jwtExpirationDuration = time.Hour * 1 // Token expires after 1 hour
 )
 
 type AuthService struct {
@@ -21,14 +29,22 @@ func NewAuthService(secretKey string) *AuthService {
 	return &AuthService{secretKey: []byte(secretKey), logger: logger}
 }
 
+// UserClaims represents custom claims for JWT tokens.
+type UserClaims struct {
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
+
 // GenerateJWT generates a JWT with user ID and username
 func (s *AuthService) GenerateJWT(id uuid.UUID, username string) (string, error) {
 	// Set payload (claims)
-	claims := jwt.MapClaims{
-		"sub":       id,
-		"username":  username,
-		"exp":       time.Now().Add(time.Hour * 1).Unix(),       // Token expires after 1 hour
-		"token_exp": time.Now().Add(time.Hour * 24 * 30).Unix(), // Long-term expiration for 30 days (used for server-side validation)
+	claims := UserClaims{
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   id.String(),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtExpirationDuration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
 	}
 
 	// Set header & payload
@@ -46,28 +62,23 @@ func (s *AuthService) GenerateJWT(id uuid.UUID, username string) (string, error)
 	return signedToken, nil
 }
 
-func (s *AuthService) ValidateJWT(token string) (jwt.MapClaims, error) {
+// ValidateJWT verifies and extracts claims from a JWT.
+func (s *AuthService) ValidateJWT(tokenString string) (*UserClaims, error) {
 	// Parse the JWT token and verify the signature
-	parsedToken, err := jwt.Parse(token, func(unsignedToken *jwt.Token) (interface{}, error) {
-		return []byte(s.secretKey), nil
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return s.secretKey, nil
 	})
 
-	// If an error occurred during token parsing
-	if err != nil {
-		// Check if the error is due to expiration
-		validationError, isValidationErr := err.(*jwt.ValidationError)
-		if isValidationErr && (validationError.Errors&jwt.ValidationErrorExpired != 0) {
-			s.logger.Warn("Token has expired", "error", err)
-			return nil, fmt.Errorf("token has expired")
-		}
-		s.logger.Error("Invalid token", "error", err)
+	// Handle errors
+	if err != nil || !token.Valid {
+		s.logger.Error("Invalid JWT token", "error", err)
 		return nil, fmt.Errorf("invalid token")
 	}
 
 	// Extract and cast the claims from the token
-	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(*UserClaims)
 	if !ok {
-		s.logger.Error("Failed to parse claims from token", "token", token)
+		s.logger.Error("Failed to parse claims from JWT token", "token", tokenString)
 		return nil, fmt.Errorf("failed to parse claims")
 	}
 
@@ -76,10 +87,19 @@ func (s *AuthService) ValidateJWT(token string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func HashPassword(password string) (string, error) {
+// HashPassword hashes a given password using bcrypt
+func (s *AuthService) HashPassword(password string) (string, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 	return string(hashed), nil
+}
+
+// ValidatePassword checks the password length requirements
+func (s *AuthService) ValidatePassword(password string) error {
+	if len(password) < minPasswordLength || len(password) > maxPasswordLength {
+		return fmt.Errorf("password must be between %d and %d characters", minPasswordLength, maxPasswordLength)
+	}
+	return nil
 }

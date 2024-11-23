@@ -39,7 +39,13 @@ func (h *CreateUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, err := services.HashPassword(body.Password)
+	err = h.authService.ValidatePassword(body.Password)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid Password: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := h.authService.HashPassword(body.Password)
 	if err != nil {
 		http.Error(w, "Could not hash password.", http.StatusInternalServerError)
 		return

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"x-clone-backend/internal/app/services"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 )
 
@@ -20,15 +19,15 @@ func TestJWTMiddleware(t *testing.T) {
 	tokenString, _ := authService.GenerateJWT(uuid.New(), "test_user")
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := r.Context().Value(UserContextKey).(jwt.MapClaims)
+		claims, ok := r.Context().Value(UserContextKey).(*services.UserClaims)
 		if !ok {
 			t.Error("Failed to retrieve claims from context")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		if claims["username"] != "test_user" {
-			t.Errorf("Expected username 'test_user', got '%v'", claims["username"])
+		if claims.Username != "test_user" {
+			t.Errorf("Expected username 'test_user', got '%v'", claims.Username)
 		}
 
 		w.WriteHeader(http.StatusOK)
