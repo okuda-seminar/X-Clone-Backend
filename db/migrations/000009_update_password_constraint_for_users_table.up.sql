@@ -1,2 +1,2 @@
 ALTER TABLE users
-ADD CONSTRAINT password_not_empty CHECK (password <> ''),
+ADD CONSTRAINT password_not_empty CHECK (password <> '');
