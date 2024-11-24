@@ -11,3 +11,4 @@ properties:
     type: string
   password:
     type: string
+    description: Password must be between 8 and 15 characters.

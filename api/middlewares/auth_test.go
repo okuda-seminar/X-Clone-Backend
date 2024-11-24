@@ -7,6 +7,7 @@ import (
 	"x-clone-backend/internal/app/services"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 )
 
 // TestJWTMiddleware tests the JWTMiddleware function by verifying
@@ -15,7 +16,8 @@ import (
 func TestJWTMiddleware(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := services.NewAuthService(secretKey)
-	tokenString, _ := authService.GenerateJWT(1, "test_user")
+
+	tokenString, _ := authService.GenerateJWT(uuid.New(), "test_user")
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := r.Context().Value(UserContextKey).(jwt.MapClaims)

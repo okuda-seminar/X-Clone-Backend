@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,10 +22,10 @@ func NewAuthService(secretKey string) *AuthService {
 }
 
 // GenerateJWT generates a JWT with user ID and username
-func (s *AuthService) GenerateJWT(ID int, username string) (string, error) {
+func (s *AuthService) GenerateJWT(id uuid.UUID, username string) (string, error) {
 	// Set payload (claims)
 	claims := jwt.MapClaims{
-		"sub":       ID,
+		"sub":       id,
 		"username":  username,
 		"exp":       time.Now().Add(time.Hour * 1).Unix(),       // Token expires after 1 hour
 		"token_exp": time.Now().Add(time.Hour * 24 * 30).Unix(), // Long-term expiration for 30 days (used for server-side validation)
