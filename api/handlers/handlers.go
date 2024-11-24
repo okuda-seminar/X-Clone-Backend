@@ -13,6 +13,7 @@ import (
 	"x-clone-backend/api/transfers"
 	openapi "x-clone-backend/gen"
 	domainerrors "x-clone-backend/internal/app/errors"
+	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 
@@ -21,7 +22,7 @@ import (
 
 // CreateUser creates a new user with the specified useranme and display name,
 // then, inserts it into users table.
-func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUsecase) {
+func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUsecase, authService *services.AuthService) {
 	var body openapi.CreateUserRequest
 
 	decoder := json.NewDecoder(r.Body)
@@ -43,7 +44,17 @@ func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUse
 		http.Error(w, fmt.Sprintln("Could not create a user."), code)
 		return
 	}
-	res := transfers.ToCreateUserResponse(&user)
+
+	token, err := authService.GenerateJWT(user.ID.String(), user.Username)
+	if err != nil {
+		http.Error(w, "Could not generate JWT token.", http.StatusInternalServerError)
+		return
+	}
+
+	res := map[string]interface{}{
+		"user":  transfers.ToCreateUserResponse(&user),
+		"token": token,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

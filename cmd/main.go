@@ -10,6 +10,7 @@ import (
 	"x-clone-backend/api/middlewares"
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
+	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
@@ -29,7 +30,10 @@ func main() {
 	var userChannels = make(map[string]chan entities.TimelineEvent)
 	var mu sync.Mutex
 
-	server := api.NewServer(db)
+	secretKey := "secret_key"
+	authService := services.NewAuthService(secretKey)
+
+	server := api.NewServer(db, authService)
 	mux := http.NewServeMux()
 	postsRepository := infrastructure.NewPostsRepository(db)
 	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)

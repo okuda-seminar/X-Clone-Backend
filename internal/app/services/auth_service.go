@@ -21,7 +21,7 @@ func NewAuthService(secretKey string) *AuthService {
 }
 
 // GenerateJWT generates a JWT with user ID and username
-func (s *AuthService) GenerateJWT(ID int, username string) (string, error) {
+func (s *AuthService) GenerateJWT(ID string, username string) (string, error) {
 	// Set payload (claims)
 	claims := jwt.MapClaims{
 		"sub":       ID,

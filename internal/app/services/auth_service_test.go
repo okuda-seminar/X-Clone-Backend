@@ -14,7 +14,7 @@ func TestGenerateJWT(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := NewAuthService(secretKey)
 
-	userID := 1
+	userID := "1"
 	username := "test_user"
 
 	signedToken, err := authService.GenerateJWT(userID, username)
@@ -29,7 +29,7 @@ func TestValidateJWT(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := NewAuthService(secretKey)
 
-	userID := 1
+	userID := "1"
 	username := "test_user"
 
 	signedToken, err := authService.GenerateJWT(userID, username)
@@ -38,7 +38,7 @@ func TestValidateJWT(t *testing.T) {
 	claims, err := authService.ValidateJWT(signedToken)
 	assert.NoError(t, err)
 
-	assert.Equal(t, float64(userID), claims["sub"])
+	assert.Equal(t, userID, claims["sub"])
 	assert.Equal(t, username, claims["username"])
 }
 
@@ -60,7 +60,7 @@ func TestInvalidSignatureJWT(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := NewAuthService(secretKey)
 
-	userID := 1
+	userID := "1"
 	username := "test_user"
 
 	signedToken, err := authService.GenerateJWT(userID, username)

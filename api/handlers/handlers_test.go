@@ -49,10 +49,27 @@ func (s *HandlersTestSuite) TestCreateUser() {
 		req := httptest.NewRequest("POST", "/api/users", strings.NewReader(test.body))
 		rr := httptest.NewRecorder()
 
-		CreateUser(rr, req, s.createUserUsecase)
+		CreateUser(rr, req, s.createUserUsecase, s.authService)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
+		}
+
+		if test.expectedCode == http.StatusCreated {
+			var res map[string]interface{}
+			err := json.Unmarshal(rr.Body.Bytes(), &res)
+			if err != nil {
+				s.T().Errorf("%s: failed to parse response body: %v", test.name, err)
+				continue
+			}
+
+			if _, ok := res["token"]; !ok {
+				s.T().Errorf("%s: token not found in response", test.name)
+			}
+
+			if _, ok := res["user"]; !ok {
+				s.T().Errorf("%s: user not found in response", test.name)
+			}
 		}
 	}
 }
@@ -550,11 +567,25 @@ func (s *HandlersTestSuite) newTestUser(body string) string {
 		strings.NewReader(body),
 	)
 	rr := httptest.NewRecorder()
-	CreateUser(rr, req, s.createUserUsecase)
+	CreateUser(rr, req, s.createUserUsecase, s.authService)
 
-	var user entities.User
-	_ = json.NewDecoder(rr.Body).Decode(&user)
-	sourceUserID := user.ID.String()
+	var res map[string]interface{}
+
+	err := json.NewDecoder(rr.Body).Decode(&res)
+	if err != nil {
+		s.T().Fatalf("Failed to decode response: %v", err)
+	}
+
+	sourceUserData, ok := res["user"].(map[string]interface{})
+	if !ok {
+		s.T().Fatalf("Invalid response format: 'user' key not found or invalid")
+	}
+
+	sourceUserID, ok := sourceUserData["id"].(string)
+	if !ok {
+		s.T().Fatalf("Invalid response format: 'id' key not found or invalid")
+	}
+
 	return sourceUserID
 }
 
