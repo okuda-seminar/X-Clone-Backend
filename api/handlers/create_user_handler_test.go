@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,7 +36,7 @@ func (s *HandlersTestSuite) TestCreateUser() {
 	}
 
 	for _, test := range tests {
-		createUserHandler := NewCreateUserHandler(s.db)
+		createUserHandler := NewCreateUserHandler(s.db, s.authService)
 
 		req := httptest.NewRequest("POST", "/api/users", strings.NewReader(test.body))
 		rr := httptest.NewRecorder()
@@ -44,6 +45,23 @@ func (s *HandlersTestSuite) TestCreateUser() {
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
+		}
+
+		if test.expectedCode == http.StatusCreated {
+			var res map[string]interface{}
+			err := json.Unmarshal(rr.Body.Bytes(), &res)
+			if err != nil {
+				s.T().Errorf("%s: failed to parse response body: %v", test.name, err)
+				continue
+			}
+
+			if _, ok := res["token"]; !ok {
+				s.T().Errorf("%s: token not found in response", test.name)
+			}
+
+			if _, ok := res["user"]; !ok {
+				s.T().Errorf("%s: user not found in response", test.name)
+			}
 		}
 	}
 }

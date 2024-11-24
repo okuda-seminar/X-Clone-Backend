@@ -5,25 +5,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
 	"x-clone-backend/api/transfers"
 	openapi "x-clone-backend/gen"
+	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/app/usecases"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 )
 
 type CreateUserHandler struct {
 	createUserUsecase usecases.CreateUserUsecase
+	authService       *services.AuthService
 }
 
-func NewCreateUserHandler(db *sql.DB) CreateUserHandler {
+func NewCreateUserHandler(db *sql.DB, authService *services.AuthService) CreateUserHandler {
 	usersRepository := infrastructure.NewUsersRepository(db)
 	createUserUsecase := usecases.NewCreateUserUsecase(usersRepository)
 	return CreateUserHandler{
 		createUserUsecase,
+		authService,
 	}
 }
 
-// CreateUser creates a new user with the specified user infomtaion.
+// CreateUser creates a new user with the specified useranme and display name,
+// then, inserts it into users table.
 func (h *CreateUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var body openapi.CreateUserRequest
 
@@ -34,7 +39,13 @@ func (h *CreateUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.createUserUsecase.CreateUser(body.Username, body.DisplayName, body.Password)
+	hashedPassword, err := services.HashPassword(body.Password)
+	if err != nil {
+		http.Error(w, "Could not hash password.", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.createUserUsecase.CreateUser(body.Username, body.DisplayName, hashedPassword)
 	if err != nil {
 		var code int
 
@@ -46,7 +57,14 @@ func (h *CreateUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintln("Could not create a user."), code)
 		return
 	}
-	res := transfers.ToCreateUserResponse(&user)
+
+	token, err := h.authService.GenerateJWT(user.ID, user.Username)
+	if err != nil {
+		http.Error(w, "Could not generate token.", http.StatusInternalServerError)
+		return
+	}
+
+	res := transfers.ToCreateUserResponse(&user, token)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

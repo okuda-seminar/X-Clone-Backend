@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 	"testing"
+
+	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 	"x-clone-backend/internal/domain/repositories"
@@ -77,6 +79,7 @@ type HandlersTestSuite struct {
 	getUserAndFolloweePostsUsecase usecases.GetUserAndFolloweePostsUsecase
 	usersRepository                repositories.UsersRepositoryInterface
 	createUserUsecase              usecases.CreateUserUsecase
+	authService                    *services.AuthService
 	likePostUsecase                usecases.LikePostUsecase
 	unlikePostUsecase              usecases.UnlikePostUsecase
 	followUserUsecase              usecases.FollowUserUsecase
@@ -129,6 +132,9 @@ func (s *HandlersTestSuite) SetupTest() {
 	s.unlikePostUsecase = usecases.NewUnlikePostUsecase(s.usersRepository)
 	s.followUserUsecase = usecases.NewFollowUserUsecase(s.usersRepository)
 	s.muteUserUsecase = usecases.NewMuteUserUsecase(s.usersRepository)
+
+	secretKey := "test_secret_key"
+	s.authService = services.NewAuthService(secretKey)
 
 	s.mu = sync.Mutex{}
 	s.userChannels = make(map[string]chan entities.TimelineEvent)

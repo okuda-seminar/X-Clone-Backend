@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
+
 	"x-clone-backend/api"
 	"x-clone-backend/api/handlers"
 	"x-clone-backend/api/middlewares"
 	"x-clone-backend/db"
 	openapi "x-clone-backend/gen"
+	"x-clone-backend/internal/app/services"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
@@ -20,6 +23,7 @@ const (
 )
 
 func main() {
+	secretKey := os.Getenv("SECRET_KEY")
 	db, err := db.Connect()
 	if err != nil {
 		log.Fatalln(err)
@@ -29,7 +33,9 @@ func main() {
 	var userChannels = make(map[string]chan entities.TimelineEvent)
 	var mu sync.Mutex
 
-	server := api.NewServer(db, &mu, &userChannels)
+	authService := services.NewAuthService(secretKey)
+
+	server := api.NewServer(db, &mu, &userChannels, authService)
 	mux := http.NewServeMux()
 
 	usersRepository := infrastructure.NewUsersRepository(db)

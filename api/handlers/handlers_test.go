@@ -285,12 +285,26 @@ func (s *HandlersTestSuite) newTestUser(body string) string {
 	)
 	rr := httptest.NewRecorder()
 
-	createUserHandler := NewCreateUserHandler(s.db)
+	createUserHandler := NewCreateUserHandler(s.db, s.authService)
 	createUserHandler.CreateUser(rr, req)
 
-	var user entities.User
-	_ = json.NewDecoder(rr.Body).Decode(&user)
-	sourceUserID := user.ID.String()
+	var res map[string]interface{}
+
+	err := json.NewDecoder(rr.Body).Decode(&res)
+	if err != nil {
+		s.T().Fatalf("Failed to decode response: %v", err)
+	}
+
+	sourceUserData, ok := res["user"].(map[string]interface{})
+	if !ok {
+		s.T().Fatalf("Invalid response format: 'user' key not found or invalid")
+	}
+
+	sourceUserID, ok := sourceUserData["id"].(string)
+	if !ok {
+		s.T().Fatalf("Invalid response format: 'id' key not found or invalid")
+	}
+
 	return sourceUserID
 }
 

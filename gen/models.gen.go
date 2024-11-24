@@ -30,19 +30,24 @@ type CreateRepostRequest struct {
 // CreateUserRequest defines model for create_user_request.
 type CreateUserRequest struct {
 	DisplayName string `json:"display_name"`
-	Password    string `json:"password"`
-	Username    string `json:"username"`
+
+	// Password Password must be between 8 and 15 characters.
+	Password string `json:"password"`
+	Username string `json:"username"`
 }
 
 // CreateUserResponse defines model for create_user_response.
 type CreateUserResponse struct {
-	Bio         string    `json:"bio"`
-	CreatedAt   time.Time `json:"created_at"`
-	DisplayName string    `json:"display_name"`
-	Id          string    `json:"id"`
-	IsPrivate   bool      `json:"is_private"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Username    string    `json:"username"`
+	Token string `json:"token"`
+	User  struct {
+		Bio         string    `json:"bio"`
+		CreatedAt   time.Time `json:"created_at"`
+		DisplayName string    `json:"display_name"`
+		Id          string    `json:"id"`
+		IsPrivate   bool      `json:"is_private"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		Username    string    `json:"username"`
+	} `json:"user"`
 }
 
 // FindUserByIdResponse defines model for find_user_by_id_response.
