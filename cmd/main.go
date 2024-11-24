@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
+
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -116,15 +119,24 @@ func main() {
 	})
 
 	handler := middlewares.CORS(openapi.HandlerFromMux(&server, mux))
-	s := http.Server{
-		Handler: handler,
-		Addr:    fmt.Sprintf(":%d", port),
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
 	}
 
+	s := &http.Server{
+		Addr:      fmt.Sprintf(":%d", port),
+		Handler:   handler,
+		TLSConfig: tlsConfig,
+	}
+
+	if err := http2.ConfigureServer(s, &http2.Server{}); err != nil {
+		log.Fatalf("Failed to configure HTTP/2: %v", err)
+	}
 	log.Println("Starting server...")
 
-	err = s.ListenAndServe()
+	err = s.ListenAndServeTLS("./cert.pem", "./key.pem")
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Server failed: %v", err)
 	}
 }
