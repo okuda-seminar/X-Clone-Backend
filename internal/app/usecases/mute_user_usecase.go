@@ -17,6 +17,6 @@ func NewMuteUserUsecase(usersRepository repositories.UsersRepositoryInterface) M
 }
 
 func (p *muteUserUsecase) MuteUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.MuteUser(nil, sourceUserID, targetUserID)
+	err := p.usersRepository.MuteUser(sourceUserID, targetUserID)
 	return err
 }

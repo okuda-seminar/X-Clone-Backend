@@ -18,12 +18,12 @@ import (
 //
 // For more information on terminology, refer to: https://help.twitter.com/en/resources/glossary.
 type User struct {
-	ID          uuid.UUID `json:"id"`
-	Username    string    `json:"username"`
-	DisplayName string    `json:"display_name"`
-	Bio         string    `json:"bio"`
-	IsPrivate   bool      `json:"is_private"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Password    string    `json:"-"`
+	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	Username    string    `gorm:"type:varchar(255);unique;not null" json:"username"`
+	DisplayName string    `gorm:"type:varchar(255);not null" json:"display_name"`
+	Bio         string    `gorm:"type:text" json:"bio"`
+	IsPrivate   bool      `gorm:"type:boolean;default:false" json:"is_private"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	Password    string    `gorm:"type:varchar(255);not null" json:"-"`
 }

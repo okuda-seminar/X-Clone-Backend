@@ -17,6 +17,6 @@ func NewUnlikePostUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *unlikePostUsecase) UnlikePost(userID string, postID string) error {
-	err := p.usersRepository.UnlikePost(nil, userID, postID)
+	err := p.usersRepository.UnlikePost(userID, postID)
 	return err
 }

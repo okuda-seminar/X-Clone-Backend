@@ -17,6 +17,6 @@ func NewFollowUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *followUserUsecase) FollowUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.FollowUser(nil, sourceUserID, targetUserID)
+	err := p.usersRepository.FollowUser(sourceUserID, targetUserID)
 	return err
 }

@@ -17,6 +17,6 @@ func NewUnblockUserUsecase(usersRepository repositories.UsersRepositoryInterface
 }
 
 func (p *unblockUserUsecase) UnblockUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.UnblockUser(nil, sourceUserID, targetUserID)
+	err := p.usersRepository.UnblockUser(sourceUserID, targetUserID)
 	return err
 }

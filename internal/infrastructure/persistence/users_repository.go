@@ -1,261 +1,156 @@
 package infrastructure
 
 import (
-	"database/sql"
-	"time"
 	"x-clone-backend/internal/app/errors"
 	"x-clone-backend/internal/domain/entities"
 	"x-clone-backend/internal/domain/repositories"
+
+	"gorm.io/gorm"
 
 	"github.com/google/uuid"
 )
 
 type UsersRepository struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
-func NewUsersRepository(db *sql.DB) repositories.UsersRepositoryInterface {
+func NewUsersRepository(db *gorm.DB) repositories.UsersRepositoryInterface {
 	return &UsersRepository{db}
 }
 
-func (r *UsersRepository) WithTransaction(fn func(tx *sql.Tx) error) error {
-	tx, err := r.DB.Begin()
-	if err != nil {
-		return err
-	}
-	if tx == nil {
-		return nil
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		} else if err != nil {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-		}
-	}()
-
-	err = fn(tx)
-	return err
-}
-
-func (r *UsersRepository) CreateUser(tx *sql.Tx, username, displayName, password string) (entities.User, error) {
-	query := `INSERT INTO users (username, display_name, password, bio, is_private) VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, created_at, updated_at`
-
-	var (
-		id                   uuid.UUID
-		createdAt, updatedAt time.Time
-	)
-
-	var err error
-	if tx != nil {
-		err = tx.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
-	} else {
-		err = r.DB.QueryRow(query, username, displayName, password, "", false).Scan(&id, &createdAt, &updatedAt)
-	}
-	if err != nil {
-		return entities.User{}, err
-	}
-
+func (r *UsersRepository) CreateUser(username, displayName, password string) (entities.User, error) {
 	user := entities.User{
-		ID:          id,
 		Username:    username,
 		DisplayName: displayName,
 		Bio:         "",
 		IsPrivate:   false,
-		CreatedAt:   createdAt,
-		UpdatedAt:   updatedAt,
 		Password:    password,
 	}
+
+	if err := r.DB.Create(&user).Error; err != nil {
+		return entities.User{}, err
+	}
+
 	return user, nil
 }
 
-func (r *UsersRepository) DeleteUser(tx *sql.Tx, userID string) error {
-	query := `DELETE FROM users WHERE id = $1`
-	var res sql.Result
-	var err error
-	if tx != nil {
-		res, err = tx.Exec(query, userID)
-	} else {
-		res, err = r.DB.Exec(query, userID)
+func (r *UsersRepository) DeleteUser(userID string) error {
+	var user entities.User
+	res := r.DB.Delete(&user, "id = ?", userID)
+	if res.Error != nil {
+		return res.Error
 	}
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
+
+	if res.RowsAffected != 1 {
 		return errors.ErrUserNotFound
 	}
 
 	return nil
 }
 
-func (r *UsersRepository) GetSpecificUser(tx *sql.Tx, userID string) (entities.User, error) {
-	query := `SELECT * FROM users WHERE id = $1`
-	var row *sql.Row
-	if tx != nil {
-		row = tx.QueryRow(query, userID)
-	} else {
-		row = r.DB.QueryRow(query, userID)
-	}
-
+func (r *UsersRepository) GetSpecificUser(userID string) (entities.User, error) {
 	var user entities.User
-	err := row.Scan(
-		&user.ID,
-		&user.Username,
-		&user.DisplayName,
-		&user.Bio,
-		&user.IsPrivate,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.Password,
-	)
-	return user, err
+	if err := r.DB.First(&user, "id = ?", userID).Error; err != nil {
+		return entities.User{}, err
+	}
+	return user, nil
 }
 
-func (r *UsersRepository) LikePost(tx *sql.Tx, userID string, postID uuid.UUID) error {
-	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
-
-	var err error
-	if tx != nil {
-		_, err = tx.Exec(query, userID, postID)
-	} else {
-		_, err = r.DB.Exec(query, userID, postID)
+func (r *UsersRepository) LikePost(userID string, postID uuid.UUID) error {
+	like := entities.Like{
+		UserID: userID,
+		PostID: postID,
 	}
-	return err
+
+	if err := r.DB.Create(&like).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *UsersRepository) UnlikePost(tx *sql.Tx, userID string, postID string) error {
-	query := "DELETE FROM likes WHERE user_id = $1 AND post_id = $2"
-	var res sql.Result
-	var err error
-	if tx != nil {
-		res, err = tx.Exec(query, userID, postID)
-	} else {
-		res, err = r.DB.Exec(query, userID, postID)
+func (r *UsersRepository) UnlikePost(userID string, postID string) error {
+	res := r.DB.Where("user_id = ? AND post_id = ?", userID, postID).Delete(&entities.Like{})
+	if res.Error != nil {
+		return res.Error
 	}
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
+	if res.RowsAffected != 1 {
 		return errors.ErrLikeNotFound
 	}
 
 	return nil
 }
 
-func (r *UsersRepository) FollowUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `INSERT INTO followships (source_user_id, target_user_id) VALUES ($1, $2)`
-
-	var err error
-	if tx != nil {
-		_, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) FollowUser(sourceUserID, targetUserID string) error {
+	followship := entities.Followship{
+		SourceUserID: sourceUserID,
+		TargetUserID: targetUserID,
 	}
-	return err
+
+	if err := r.DB.Create(&followship).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *UsersRepository) UnfollowUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `DELETE FROM followships WHERE source_user_id = $1 AND target_user_id = $2`
-	var res sql.Result
-	var err error
-	if tx != nil {
-		res, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) UnfollowUser(sourceUserID, targetUserID string) error {
+	res := r.DB.Where("source_user_id = ? AND target_user_id = ?", sourceUserID, targetUserID).Delete(&entities.Followship{})
+	if res.Error != nil {
+		return res.Error
 	}
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
+	if res.RowsAffected != 1 {
 		return errors.ErrFollowshipNotFound
 	}
 
 	return nil
 }
 
-func (r *UsersRepository) MuteUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `INSERT INTO mutes (source_user_id, target_user_id) VALUES ($1, $2)`
-
-	var err error
-	if tx != nil {
-		_, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) MuteUser(sourceUserID, targetUserID string) error {
+	mute := entities.Mute{
+		SourceUserID: sourceUserID,
+		TargetUserID: targetUserID,
 	}
-	return err
+
+	if err := r.DB.Create(&mute).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *UsersRepository) UnmuteUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `DELETE FROM mutes WHERE source_user_id = $1 AND target_user_id = $2`
-	var res sql.Result
-	var err error
-	if tx != nil {
-		res, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) UnmuteUser(sourceUserID, targetUserID string) error {
+	res := r.DB.Where("source_user_id = ? AND target_user_id = ?", sourceUserID, targetUserID).Delete(&entities.Mute{})
+	if res.Error != nil {
+		return res.Error
 	}
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
+	if res.RowsAffected != 1 {
 		return errors.ErrMuteNotFound
 	}
 
 	return nil
 }
 
-func (r *UsersRepository) BlockUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `INSERT INTO blocks (source_user_id, target_user_id) VALUES ($1, $2)`
-	var err error
-	if tx != nil {
-		_, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		_, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) BlockUser(sourceUserID, targetUserID string) error {
+	block := entities.Block{
+		SourceUserID: sourceUserID,
+		TargetUserID: targetUserID,
 	}
-	if err != nil {
+	if err := r.DB.Create(&block).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *UsersRepository) UnblockUser(tx *sql.Tx, sourceUserID, targetUserID string) error {
-	query := `DELETE FROM blocks WHERE source_user_id = $1 AND target_user_id = $2`
-	var res sql.Result
-	var err error
-	if tx != nil {
-		res, err = tx.Exec(query, sourceUserID, targetUserID)
-	} else {
-		res, err = r.DB.Exec(query, sourceUserID, targetUserID)
+func (r *UsersRepository) UnblockUser(sourceUserID, targetUserID string) error {
+	res := r.DB.Where("source_user_id = ? AND target_user_id = ?", sourceUserID, targetUserID).Delete(&entities.Block{})
+
+	if res.Error != nil {
+		return res.Error
 	}
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
+
+	if res.RowsAffected != 1 {
 		return errors.ErrBlockNotFound
 	}
 

@@ -17,6 +17,6 @@ func NewDeleteUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *deleteUserUsecase) DeleteUser(userID string) error {
-	err := p.usersRepository.DeleteUser(nil, userID)
+	err := p.usersRepository.DeleteUser(userID)
 	return err
 }

@@ -19,6 +19,6 @@ func NewLikePostUsecase(usersRepository repositories.UsersRepositoryInterface) L
 }
 
 func (p *likePostUsecase) LikePost(userID string, postID uuid.UUID) error {
-	err := p.usersRepository.LikePost(nil, userID, postID)
+	err := p.usersRepository.LikePost(userID, postID)
 	return err
 }

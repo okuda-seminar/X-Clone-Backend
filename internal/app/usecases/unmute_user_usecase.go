@@ -17,6 +17,6 @@ func NewUnmuteUserUsecase(usersRepository repositories.UsersRepositoryInterface)
 }
 
 func (p *unmuteUserUsecase) UnmuteUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.UnmuteUser(nil, sourceUserID, targetUserID)
+	err := p.usersRepository.UnmuteUser(sourceUserID, targetUserID)
 	return err
 }

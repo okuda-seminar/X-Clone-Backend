@@ -25,7 +25,7 @@ func (p *createUserUsecase) CreateUser(username, displayName, password string) (
 	if err != nil {
 		return entities.User{}, fmt.Errorf("could not hash the password: %w", err)
 	}
-	user, err = p.usersRepository.CreateUser(nil, username, displayName, hashedPassword)
+	user, err = p.usersRepository.CreateUser(username, displayName, hashedPassword)
 	if err != nil {
 		return entities.User{}, err
 	}

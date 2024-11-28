@@ -13,6 +13,9 @@ import (
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 	infrastructure "x-clone-backend/internal/infrastructure/persistence"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -26,6 +29,13 @@ func main() {
 	}
 	defer db.Close()
 
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: db,
+	}), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to wrap *sql.DB with GORM: %v", err)
+	}
+
 	var userChannels = make(map[string]chan entities.TimelineEvent)
 	var mu sync.Mutex
 
@@ -35,7 +45,7 @@ func main() {
 	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)
 	getUserAndFolloweePostsUsecase := usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
-	usersRepository := infrastructure.NewUsersRepository(db)
+	usersRepository := infrastructure.NewUsersRepository(gormDB)
 	deleteUserUsecase := usecases.NewDeleteUserUsecase(usersRepository)
 	getspecificUserUsecase := usecases.NewGetSpecificUserUsecase(usersRepository)
 	likePostUsecase := usecases.NewLikePostUsecase(usersRepository)

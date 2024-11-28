@@ -19,6 +19,8 @@ import (
 	"github.com/ory/dockertest"
 	"github.com/ory/dockertest/docker"
 	"github.com/stretchr/testify/suite"
+	gormPostgres "gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -118,12 +120,19 @@ func (s *HandlersTestSuite) SetupTest() {
 		log.Fatalln(err)
 	}
 
+	gormDB, err := gorm.Open(gormPostgres.New(gormPostgres.Config{
+		Conn: s.db,
+	}), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to wrap *sql.DB with GORM: %v", err)
+	}
+
 	// Set up usecases.
 	postsRepository := infrastructure.NewPostsRepository(s.db)
 	s.getSpecificUserPostsUsecase = usecases.NewGetSpecificUserPostsUsecase(postsRepository)
 	s.getUserAndFolloweePostsUsecase = usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
-	s.usersRepository = infrastructure.NewUsersRepository(s.db)
+	s.usersRepository = infrastructure.NewUsersRepository(gormDB)
 	s.createUserUsecase = usecases.NewCreateUserUsecase(s.usersRepository)
 	s.likePostUsecase = usecases.NewLikePostUsecase(s.usersRepository)
 	s.unlikePostUsecase = usecases.NewUnlikePostUsecase(s.usersRepository)

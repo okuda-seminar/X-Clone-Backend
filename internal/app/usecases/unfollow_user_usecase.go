@@ -17,6 +17,6 @@ func NewUnfollowUserUsecase(usersRepository repositories.UsersRepositoryInterfac
 }
 
 func (p *unfollowUserUsecase) UnfollowUser(sourceUserID, targetUserID string) error {
-	err := p.usersRepository.UnfollowUser(nil, sourceUserID, targetUserID)
+	err := p.usersRepository.UnfollowUser(sourceUserID, targetUserID)
 	return err
 }
