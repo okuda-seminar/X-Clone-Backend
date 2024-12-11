@@ -490,13 +490,13 @@ func GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request,
 	for {
 		select {
 		case event := <-userChan:
-			jsonData, err := json.Marshal(event.Posts)
+			jsonData, err := json.Marshal(event)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
-			fmt.Fprintf(w, "event: %d\ndata: %s\n\n", event.EventType, jsonData)
+			fmt.Fprintf(w, "data: %s\n\n", jsonData)
 			flusher.Flush()
 		case <-r.Context().Done():
 			mu.Lock()

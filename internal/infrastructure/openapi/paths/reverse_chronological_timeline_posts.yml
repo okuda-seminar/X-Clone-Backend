@@ -16,5 +16,7 @@ get:
         text/event-stream:
           schema:
             $ref: ../openapi.yml#/components/schemas/GetReverseChronologicalHomeTimelineResponse
+          examples:
+            $ref: ../openapi.yml#/components/schemas/GetReverseChronologicalHomeTimelineExample
     "500":
       description: Unexpected error occurred.
