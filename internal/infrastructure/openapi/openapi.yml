@@ -28,6 +28,8 @@ components:
       $ref: ./components/responses/create_post_response.yml
     GetReverseChronologicalHomeTimelineResponse:
       $ref: ./components/responses/get_reverse_chronological_home_timeline_response.yml
+    GetReverseChronologicalHomeTimelineExample:
+      $ref: ./components/examples/get_reverse_chronological_home_timeline_example.yml
     GetUserPostsTimelineResponse:
       $ref: ./components/responses/get_user_posts_timeline_response.yml
     FindUserByIDResponse:

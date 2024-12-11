@@ -517,13 +517,15 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 			line := scanner.Text()
 			if strings.HasPrefix(line, "data:") {
 				jsonData := strings.TrimPrefix(line, "data: ")
-				var newPosts []entities.Post
+				var timelineEvent entities.TimelineEvent
 
-				err := json.Unmarshal([]byte(jsonData), &newPosts)
+				err := json.Unmarshal([]byte(jsonData), &timelineEvent)
 				if err != nil {
 					s.T().Errorf("Failed to decode JSON: %v", err)
 				}
-				posts = append(posts, newPosts...)
+				for _, post := range timelineEvent.Posts {
+					posts = append(posts, *post)
+				}
 			}
 		}
 
