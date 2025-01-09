@@ -9,6 +9,8 @@ paths:
     $ref: ./paths/users.yml
   /api/posts:
     $ref: ./paths/posts.yml
+  /api/posts/reposts:
+    $ref: ./paths/reposts.yml
   /api/users/{id}/timelines/reverse_chronological:
     $ref: ./paths/reverse_chronological_timeline_posts.yml
   /api/users/{id}/posts:
@@ -26,6 +28,8 @@ components:
       $ref: ./components/requests/create_post_request.yml
     CreatePostResponse:
       $ref: ./components/responses/create_post_response.yml
+    CreateRepostRequest:
+      $ref: ./components/requests/create_repost_request.yml
     GetReverseChronologicalHomeTimelineResponse:
       $ref: ./components/responses/get_reverse_chronological_home_timeline_response.yml
     GetReverseChronologicalHomeTimelineExample:
