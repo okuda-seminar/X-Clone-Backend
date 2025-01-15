@@ -11,6 +11,8 @@ paths:
     $ref: ./paths/posts.yml
   /api/posts/reposts:
     $ref: ./paths/reposts.yml
+  /api/posts/reposts/{user_id}/{post_id}:
+    $ref: ./paths/delete_reposts.yml
   /api/users/{id}/timelines/reverse_chronological:
     $ref: ./paths/reverse_chronological_timeline_posts.yml
   /api/users/{id}/posts:
