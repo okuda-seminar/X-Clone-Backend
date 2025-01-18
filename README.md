@@ -20,7 +20,7 @@ make up
 
 Enter the application container:
 ```
-make exec_app
+make exec-app
 ```
 
 ## Checking PostgreSQL State
@@ -30,7 +30,7 @@ To check the state of the PostgreSQL database:
 
 Enter the PostgreSQL container:
 ```
-make exec_pg
+make exec-pg
 ```
 
 2. Connect to the PostgreSQL Database  
