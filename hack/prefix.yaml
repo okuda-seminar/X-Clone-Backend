@@ -6,3 +6,4 @@ allow-prefix:
   - '[Posts]'
   - '[Timeline]'
   - '[Users]'
+  - '[Reposts]'
