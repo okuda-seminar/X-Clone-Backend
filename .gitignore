@@ -5,6 +5,6 @@
 db/data
 
 # OpenAPI bundle
-openapi/bundle/*
+bundled-openapi.yml
 
 !.gitkeep
