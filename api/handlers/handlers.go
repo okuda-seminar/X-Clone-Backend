@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
-	"time"
 	domainerrors "x-clone-backend/internal/app/errors"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
@@ -36,104 +35,6 @@ func DeleteUserByID(w http.ResponseWriter, r *http.Request, u usecases.DeleteUse
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// FindUserByID finds a user with the specified ID.
-func FindUserByID(w http.ResponseWriter, r *http.Request, u usecases.GetSpecificUserUsecase) {
-	userID := r.PathValue("userID")
-
-	slog.Info("GET /api/users/{userID} was called.")
-
-	user, err := u.GetSpecificUser(userID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Could not find a user (ID: %s)\n", userID), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(&user)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
-		return
-	}
-}
-
-// CreatePost creates a new post with the specified user_id and text,
-// then, inserts it into posts table.
-func CreatePost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
-	var body createPostRequestBody
-
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&body)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
-		return
-	}
-
-	query := `INSERT INTO posts (user_id, text) VALUES ($1, $2)
-		RETURNING id, created_at`
-
-	var (
-		id        uuid.UUID
-		createdAt time.Time
-	)
-
-	err = db.QueryRow(query, body.UserID, body.Text).Scan(&id, &createdAt)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not create a post."), http.StatusInternalServerError)
-		return
-	}
-
-	post := entities.Post{
-		ID:        id,
-		UserID:    body.UserID,
-		Text:      body.Text,
-		CreatedAt: createdAt,
-	}
-
-	go func(userID uuid.UUID, userChan *map[string]chan entities.TimelineEvent) {
-		var posts []*entities.Post
-		posts = append(posts, &post)
-		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
-		rows, err := db.Query(query, userID.String())
-		if err != nil {
-			log.Fatalln(err)
-			return
-		}
-
-		var ids []uuid.UUID
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				log.Fatalln(err)
-				return
-			}
-
-			ids = append(ids, id)
-		}
-		ids = append(ids, userID)
-		for _, id := range ids {
-			mu.Lock()
-			if userChan, ok := (*usersChan)[id.String()]; ok {
-				userChan <- entities.TimelineEvent{EventType: entities.PostCreated, Posts: posts}
-			}
-			mu.Unlock()
-		}
-
-	}(body.UserID, usersChan)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(&post)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
-		return
-	}
 }
 
 // DeletePost deletes a post with the specified post ID.
