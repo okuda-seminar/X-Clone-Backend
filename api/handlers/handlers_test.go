@@ -537,7 +537,9 @@ func (s *HandlersTestSuite) newTestPost(body string) string {
 		strings.NewReader(body),
 	)
 	rr := httptest.NewRecorder()
-	CreatePost(rr, req, s.db, &s.mu, &s.userChannels)
+
+	createPostHandler := NewCreatePostHandler(s.db, &s.mu, &s.userChannels)
+	createPostHandler.CreatePost(rr, req)
 
 	var post entities.Post
 	_ = json.NewDecoder(rr.Body).Decode(&post)

@@ -29,7 +29,7 @@ func main() {
 	var userChannels = make(map[string]chan entities.TimelineEvent)
 	var mu sync.Mutex
 
-	server := api.NewServer(db)
+	server := api.NewServer(db, &mu, &userChannels)
 	mux := http.NewServeMux()
 
 	usersRepository := infrastructure.NewUsersRepository(db)
