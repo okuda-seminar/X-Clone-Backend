@@ -31,13 +31,9 @@ func main() {
 
 	server := api.NewServer(db)
 	mux := http.NewServeMux()
-	postsRepository := infrastructure.NewPostsRepository(db)
-	getSpecificUserPostsUsecase := usecases.NewGetSpecificUserPostsUsecase(postsRepository)
-	getUserAndFolloweePostsUsecase := usecases.NewGetUserAndFolloweePostsUsecase(postsRepository)
 
 	usersRepository := infrastructure.NewUsersRepository(db)
 	deleteUserUsecase := usecases.NewDeleteUserUsecase(usersRepository)
-	getspecificUserUsecase := usecases.NewGetSpecificUserUsecase(usersRepository)
 	likePostUsecase := usecases.NewLikePostUsecase(usersRepository)
 	unlikePostUsecase := usecases.NewUnlikePostUsecase(usersRepository)
 	followUserUsecase := usecases.NewFollowUserUsecase(usersRepository)
@@ -47,28 +43,12 @@ func main() {
 	blockUserUsecase := usecases.NewBlockUserUsecase(usersRepository)
 	unblockUserUsecase := usecases.NewUnblockUserUsecase(usersRepository)
 
-	mux.HandleFunc("POST /api/posts", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreatePost(w, r, db, &mu, &userChannels)
-	})
-
 	mux.HandleFunc("DELETE /api/posts/{postID}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeletePost(w, r, db, &mu, &userChannels)
 	})
 
-	mux.HandleFunc("POST /api/posts/reposts", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateRepost(w, r, db)
-	})
-
-	mux.HandleFunc("DELETE /api/posts/reposts/{user_id}/{post_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteRepost(w, r, db)
-	})
-
 	mux.HandleFunc("DELETE /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteUserByID(w, r, deleteUserUsecase)
-	})
-
-	mux.HandleFunc("GET /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.FindUserByID(w, r, getspecificUserUsecase)
 	})
 
 	mux.HandleFunc("POST /api/users/{id}/likes", func(w http.ResponseWriter, r *http.Request) {
@@ -81,14 +61,6 @@ func main() {
 
 	mux.HandleFunc("POST /api/users/{id}/following", func(w http.ResponseWriter, r *http.Request) {
 		handlers.CreateFollowship(w, r, followUserUsecase)
-	})
-
-	mux.HandleFunc("GET /api/users/{id}/posts", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetUserPostsTimeline(w, r, getSpecificUserPostsUsecase)
-	})
-
-	mux.HandleFunc("GET /api/users/{id}/timelines/reverse_chronological", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetReverseChronologicalHomeTimeline(w, r, getUserAndFolloweePostsUsecase, &mu, &userChannels)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{source_user_id}/following/{target_user_id}", func(w http.ResponseWriter, r *http.Request) {

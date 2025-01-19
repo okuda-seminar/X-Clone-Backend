@@ -3,8 +3,11 @@ title: CreateUserRequest
 required:
   - username
   - display_name
+  - password
 properties:
   username:
     type: string
   display_name:
+    type: string
+  password:
     type: string
