@@ -4,20 +4,24 @@ import (
 	"database/sql"
 	"net/http"
 	"x-clone-backend/api/handlers"
-	"x-clone-backend/internal/app/usecases"
-	infrastructure "x-clone-backend/internal/infrastructure/persistence"
 )
 
+// [Server] satisfies [ServerInterface] defined in gen/server.gen.go.
 type Server struct {
-	db *sql.DB
+	handlers.CreateUserHandler
 }
 
 func NewServer(db *sql.DB) Server {
-	return Server{db}
+	return Server{
+		CreateUserHandler: handlers.NewCreateUserHandler(db),
+	}
 }
 
-func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
-	usersRepository := infrastructure.NewUsersRepository(s.db)
-	createUserUsecase := usecases.NewCreateUserUsecase(usersRepository)
-	handlers.CreateUser(w, r, createUserUsecase)
+// Define temporary handlers so that [Server] satisfies [ServerInterface].
+func (s *Server) CreatePost(w http.ResponseWriter, r *http.Request)                                 {}
+func (s *Server) CreateRepost(w http.ResponseWriter, r *http.Request)                               {}
+func (s *Server) DeleteRepost(w http.ResponseWriter, r *http.Request, userId string, postId string) {}
+func (s *Server) GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, id string)            {}
+func (s *Server) GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, id string) {
 }
+func (s *Server) FindUserByID(w http.ResponseWriter, r *http.Request, userID string) {}

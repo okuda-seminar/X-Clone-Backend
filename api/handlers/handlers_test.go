@@ -17,46 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func (s *HandlersTestSuite) TestCreateUser() {
-	tests := []struct {
-		name         string
-		body         string
-		expectedCode int
-	}{
-		{
-			name:         "create user",
-			body:         `{ "username": "test", "display_name": "test", "password": "securepassword" }`,
-			expectedCode: http.StatusCreated,
-		},
-		{
-			name:         "invalid JSON body",
-			body:         `{ "username": "` + "test",
-			expectedCode: http.StatusBadRequest,
-		},
-		{
-			name:         "invalid body",
-			body:         `{ "invalid": "test" }`,
-			expectedCode: http.StatusInternalServerError,
-		},
-		{
-			name:         "duplicated username",
-			body:         `{ "username": "test", "display_name": "duplicated", "password": "securepassword" }`,
-			expectedCode: http.StatusConflict,
-		},
-	}
-
-	for _, test := range tests {
-		req := httptest.NewRequest("POST", "/api/users", strings.NewReader(test.body))
-		rr := httptest.NewRecorder()
-
-		CreateUser(rr, req, s.createUserUsecase)
-
-		if rr.Code != test.expectedCode {
-			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
-		}
-	}
-}
-
 func (s *HandlersTestSuite) TestDeletePost() {
 	userID := s.newTestUser(`{ "username": "test user", "display_name": "test user", "password": "securepassword" }`)
 	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test post" }`, userID))
@@ -562,7 +522,9 @@ func (s *HandlersTestSuite) newTestUser(body string) string {
 		strings.NewReader(body),
 	)
 	rr := httptest.NewRecorder()
-	CreateUser(rr, req, s.createUserUsecase)
+
+	createUserHandler := NewCreateUserHandler(s.db)
+	createUserHandler.CreateUser(rr, req)
 
 	var user entities.User
 	_ = json.NewDecoder(rr.Body).Decode(&user)

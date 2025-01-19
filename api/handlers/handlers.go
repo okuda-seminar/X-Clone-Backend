@@ -10,51 +10,12 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"x-clone-backend/api/transfers"
-	openapi "x-clone-backend/gen"
 	domainerrors "x-clone-backend/internal/app/errors"
 	"x-clone-backend/internal/app/usecases"
 	"x-clone-backend/internal/domain/entities"
 
 	"github.com/google/uuid"
 )
-
-// CreateUser creates a new user with the specified useranme and display name,
-// then, inserts it into users table.
-func CreateUser(w http.ResponseWriter, r *http.Request, u usecases.CreateUserUsecase) {
-	var body openapi.CreateUserRequest
-
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&body)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Request body was invalid."), http.StatusBadRequest)
-		return
-	}
-
-	user, err := u.CreateUser(body.Username, body.DisplayName, body.Password)
-	if err != nil {
-		var code int
-
-		if isUniqueViolationError(err) {
-			code = http.StatusConflict
-		} else {
-			code = http.StatusInternalServerError
-		}
-		http.Error(w, fmt.Sprintln("Could not create a user."), code)
-		return
-	}
-	res := transfers.ToCreateUserResponse(&user)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(res)
-	if err != nil {
-		http.Error(w, fmt.Sprintln("Could not encode response."), http.StatusInternalServerError)
-		return
-	}
-}
 
 // DeleteUser deletes a user with the specified user ID.
 // If a target user does not exist, it returns 404.
