@@ -400,7 +400,7 @@ func DeleteBlocking(w http.ResponseWriter, r *http.Request, u usecases.UnblockUs
 
 // CreateRepost creates a new repost with the specified post_id and user_id,
 // then, inserts it into reposts table.
-func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
 	var body createRepostRequestBody
 
 	decoder := json.NewDecoder(r.Body)
@@ -419,6 +419,57 @@ func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, fmt.Sprintln("Could not create a repost."), http.StatusInternalServerError)
 		return
 	}
+
+	var (
+		userID    uuid.UUID
+		text      string
+		createdAt time.Time
+	)
+
+	query = `SELECT user_id, text, created_at FROM posts WHERE id=$1`
+	err = db.QueryRow(query, body.PostID).Scan(&userID, &text, &createdAt)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not fetch the original post for repost."), http.StatusInternalServerError)
+		return
+	}
+
+	post := entities.Post{
+		ID:        body.PostID,
+		UserID:    userID,
+		Text:      text,
+		CreatedAt: createdAt,
+	}
+
+	go func(userID uuid.UUID, userChan *map[string]chan entities.TimelineEvent) {
+		var posts []*entities.Post
+		posts = append(posts, &post)
+		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
+		rows, err := db.Query(query, userID.String())
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				log.Fatalln(err)
+				return
+			}
+
+			ids = append(ids, id)
+		}
+		ids = append(ids, userID)
+		for _, id := range ids {
+			mu.Lock()
+			if userChan, ok := (*usersChan)[id.String()]; ok {
+				userChan <- entities.TimelineEvent{EventType: entities.RepostCreated, Posts: posts}
+			}
+			mu.Unlock()
+		}
+
+	}(body.UserID, usersChan)
 
 	w.WriteHeader(http.StatusCreated)
 }

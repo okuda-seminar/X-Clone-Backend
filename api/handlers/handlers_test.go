@@ -346,7 +346,7 @@ func (s *HandlersTestSuite) TestCreateRepost() {
 			strings.NewReader(test.body),
 		)
 		rr := httptest.NewRecorder()
-		CreateRepost(rr, req, s.db)
+		CreateRepost(rr, req, s.db, &s.mu, &s.userChannels)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
@@ -441,13 +441,15 @@ func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 	// This test method verifies the number of posts in the response body.
 	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1", "password": "securepassword" }`)
-	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
+	post1ID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test1" }`, user1ID))
 	user2ID := s.newTestUser(`{ "username": "test2", "display_name": "test2", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test2" }`, user2ID))
 	user3ID := s.newTestUser(`{ "username": "test3", "display_name": "test3", "password": "securepassword" }`)
 	_ = s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test3" }`, user3ID))
 	user4ID := s.newTestUser(`{ "username": "test4", "display_name": "test4", "password": "securepassword" }`)
 	s.newTestFollow(user3ID, user2ID)
+	user5ID := s.newTestUser(`{ "username": "test5", "display_name": "test5", "password": "securepassword" }`)
+	post2ID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test5" }`, user5ID))
 
 	tests := []struct {
 		name          string
@@ -479,6 +481,11 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 			userID:        user1ID,
 			expectedCount: 2,
 		},
+		{
+			name:          "get a target user post and a repost notification during timeline access",
+			userID:        user5ID,
+			expectedCount: 2,
+		},
 	}
 
 	for _, test := range tests {
@@ -507,7 +514,10 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 		}
 		if test.name == "get posts and posts deleted during timeline access" {
 			time.Sleep(100 * time.Millisecond)
-			s.newTestDeletePost(postID)
+			s.newTestDeletePost(post1ID)
+		}
+		if test.name == "get a target user post and a repost notification during timeline access" {
+			s.newTestRepost(user5ID, post2ID)
 		}
 
 		wg.Wait()
@@ -542,7 +552,7 @@ func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
 		strings.NewReader(fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID)),
 	)
 	rr := httptest.NewRecorder()
-	CreateRepost(rr, req, s.db)
+	CreateRepost(rr, req, s.db, &s.mu, &s.userChannels)
 }
 
 func (s *HandlersTestSuite) newTestUser(body string) string {
