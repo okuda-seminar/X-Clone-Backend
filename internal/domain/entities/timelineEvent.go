@@ -4,6 +4,7 @@ const (
 	TimelineAccessed = "TimelineAccessed"
 	PostCreated      = "PostCreated"
 	PostDeleted      = "PostDeleted"
+	RepostCreated    = "RepostCreated"
 )
 
 type TimelineEvent struct {
