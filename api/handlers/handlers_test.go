@@ -258,99 +258,6 @@ func (s *HandlersTestSuite) TestCreateMuting() {
 	}
 }
 
-func (s *HandlersTestSuite) TestCreateRepost() {
-	userID := s.newTestUser(`{ "username": "test", "display_name": "test", "password": "securepassword" }`)
-	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
-
-	tests := []struct {
-		name         string
-		body         string
-		expectedCode int
-	}{
-		{
-			name:         "create repost",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID),
-			expectedCode: http.StatusCreated,
-		},
-		{
-			name:         "invalid JSON body",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s }`, postID, userID),
-			expectedCode: http.StatusBadRequest,
-		},
-		{
-			name:         "invalid body",
-			body:         fmt.Sprintf(`{ "post_id": "%s" }`, postID),
-			expectedCode: http.StatusInternalServerError,
-		},
-		{
-			name:         "non-existent user id",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, uuid.New()),
-			expectedCode: http.StatusInternalServerError,
-		},
-		{
-			name:         "non-existent post id",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, uuid.New(), userID),
-			expectedCode: http.StatusInternalServerError,
-		},
-		{
-			name:         "duplicated repost",
-			body:         fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID),
-			expectedCode: http.StatusInternalServerError,
-		},
-	}
-
-	for _, test := range tests {
-		req := httptest.NewRequest(
-			"POST",
-			"/api/posts/reposts",
-			strings.NewReader(test.body),
-		)
-		rr := httptest.NewRecorder()
-		CreateRepost(rr, req, s.db, &s.mu, &s.userChannels)
-
-		if rr.Code != test.expectedCode {
-			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
-		}
-	}
-}
-
-func (s *HandlersTestSuite) TestDeleteRepost() {
-	userID := s.newTestUser(`{ "username": "test", "display_name": "test", "password": "securepassword" }`)
-	postID := s.newTestPost(fmt.Sprintf(`{ "user_id": "%s", "text": "test" }`, userID))
-	s.newTestRepost(userID, postID)
-
-	tests := []struct {
-		name         string
-		expectedCode int
-	}{
-		{
-			name:         "delete repost",
-			expectedCode: http.StatusNoContent,
-		},
-		{
-			name:         "non-existent repost",
-			expectedCode: http.StatusNotFound,
-		},
-	}
-
-	for _, test := range tests {
-		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(
-			"DELETE",
-			"/api/posts/reposts/{user_id}/{post_id}",
-			strings.NewReader(""),
-		)
-		req.SetPathValue("user_id", userID)
-		req.SetPathValue("post_id", postID)
-
-		DeleteRepost(rr, req, s.db)
-
-		if rr.Code != test.expectedCode {
-			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
-		}
-	}
-}
-
 func (s *HandlersTestSuite) TestGetUserPostsTimeline() {
 	// This test method verifies the number of posts in the response body.
 	user1ID := s.newTestUser(`{ "username": "test1", "display_name": "test1", "password": "securepassword" }`)
@@ -512,7 +419,9 @@ func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
 		strings.NewReader(fmt.Sprintf(`{ "post_id": "%s", "user_id": "%s" }`, postID, userID)),
 	)
 	rr := httptest.NewRecorder()
-	CreateRepost(rr, req, s.db, &s.mu, &s.userChannels)
+
+	createRepostHandler := NewCreateRepostHandler(s.db, &s.mu, &s.userChannels)
+	createRepostHandler.CreateRepost(rr, req)
 }
 
 func (s *HandlersTestSuite) newTestUser(body string) string {

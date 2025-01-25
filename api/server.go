@@ -16,6 +16,8 @@ type Server struct {
 	handlers.CreateUserHandler
 	handlers.FindUserByIDHandler
 	handlers.CreatePostHandler
+	handlers.CreateRepostHandler
+	handlers.DeleteRepostHandler
 }
 
 func NewServer(db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) Server {
@@ -23,12 +25,12 @@ func NewServer(db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.T
 		CreateUserHandler:   handlers.NewCreateUserHandler(db),
 		FindUserByIDHandler: handlers.NewFindUserByIDHandler(db),
 		CreatePostHandler:   handlers.NewCreatePostHandler(db, mu, usersChan),
+		CreateRepostHandler: handlers.NewCreateRepostHandler(db, mu, usersChan),
+		DeleteRepostHandler: handlers.NewDeleteRepostHandler(db),
 	}
 }
 
 // Define temporary handlers so that [Server] satisfies [ServerInterface].
-func (s *Server) CreateRepost(w http.ResponseWriter, r *http.Request)                               {}
-func (s *Server) DeleteRepost(w http.ResponseWriter, r *http.Request, userId string, postId string) {}
-func (s *Server) GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, id string)            {}
+func (s *Server) GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, id string) {}
 func (s *Server) GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, id string) {
 }
