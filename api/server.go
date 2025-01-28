@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"net/http"
 	"sync"
 	"x-clone-backend/api/handlers"
 	openapi "x-clone-backend/gen"
@@ -18,19 +17,18 @@ type Server struct {
 	handlers.CreatePostHandler
 	handlers.CreateRepostHandler
 	handlers.DeleteRepostHandler
+	handlers.GetUserPostsTimelineHandler
+	handlers.GetReverseChronologicalHomeTimelineHandler
 }
 
 func NewServer(db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) Server {
 	return Server{
-		CreateUserHandler:   handlers.NewCreateUserHandler(db),
-		FindUserByIDHandler: handlers.NewFindUserByIDHandler(db),
-		CreatePostHandler:   handlers.NewCreatePostHandler(db, mu, usersChan),
-		CreateRepostHandler: handlers.NewCreateRepostHandler(db, mu, usersChan),
-		DeleteRepostHandler: handlers.NewDeleteRepostHandler(db, mu, usersChan),
+		CreateUserHandler:                          handlers.NewCreateUserHandler(db),
+		FindUserByIDHandler:                        handlers.NewFindUserByIDHandler(db),
+		CreatePostHandler:                          handlers.NewCreatePostHandler(db, mu, usersChan),
+		CreateRepostHandler:                        handlers.NewCreateRepostHandler(db, mu, usersChan),
+		DeleteRepostHandler:                        handlers.NewDeleteRepostHandler(db, mu, usersChan),
+		GetUserPostsTimelineHandler:                handlers.NewGetUserPostsTimelineHandler(db),
+		GetReverseChronologicalHomeTimelineHandler: handlers.NewGetReverseChronologicalHomeTimelineHandler(db, mu, usersChan),
 	}
-}
-
-// Define temporary handlers so that [Server] satisfies [ServerInterface].
-func (s *Server) GetUserPostsTimeline(w http.ResponseWriter, r *http.Request, id string) {}
-func (s *Server) GetReverseChronologicalHomeTimeline(w http.ResponseWriter, r *http.Request, id string) {
 }
