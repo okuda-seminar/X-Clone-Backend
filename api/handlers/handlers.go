@@ -474,7 +474,7 @@ func CreateRepost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.M
 	w.WriteHeader(http.StatusCreated)
 }
 
-func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB, mu *sync.Mutex, usersChan *map[string]chan entities.TimelineEvent) {
 	postID := r.PathValue("post_id")
 	userID := r.PathValue("user_id")
 
@@ -495,6 +495,51 @@ func DeleteRepost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, fmt.Sprintf("No row found to delete: (user id: %s, post id: %s)\n", userID, postID), http.StatusNotFound)
 		return
 	}
+
+	var post entities.Post
+
+	query = `SELECT user_id, text, created_at FROM posts WHERE id=$1`
+	err = db.QueryRow(query, postID).Scan(&post.UserID, &post.Text, &post.CreatedAt)
+	if err != nil {
+		http.Error(w, fmt.Sprintln("Could not fetch the original post for repost."), http.StatusInternalServerError)
+		return
+	}
+
+	post.ID, err = uuid.Parse(postID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not parse a postID (ID: %s)\n", postID), http.StatusBadRequest)
+		return
+	}
+
+	go func(userID uuid.UUID, usersChan *map[string]chan entities.TimelineEvent) {
+		var posts []*entities.Post
+		posts = append(posts, &post)
+		query = `SELECT source_user_id FROM followships WHERE target_user_id=$1`
+		rows, err := db.Query(query, userID.String())
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				log.Fatalln(err)
+				return
+			}
+
+			ids = append(ids, id)
+		}
+		ids = append(ids, userID)
+		for _, id := range ids {
+			mu.Lock()
+			if userChan, ok := (*usersChan)[id.String()]; ok {
+				userChan <- entities.TimelineEvent{EventType: entities.RepostDeleted, Posts: posts}
+			}
+			mu.Unlock()
+		}
+	}(post.UserID, usersChan)
 
 	w.WriteHeader(http.StatusNoContent)
 }
