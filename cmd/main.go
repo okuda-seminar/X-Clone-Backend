@@ -60,7 +60,7 @@ func main() {
 	})
 
 	mux.HandleFunc("DELETE /api/posts/reposts/{user_id}/{post_id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteRepost(w, r, db)
+		handlers.DeleteRepost(w, r, db, &mu, &userChannels)
 	})
 
 	mux.HandleFunc("DELETE /api/users/{userID}", func(w http.ResponseWriter, r *http.Request) {

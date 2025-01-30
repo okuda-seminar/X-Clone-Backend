@@ -383,7 +383,7 @@ func (s *HandlersTestSuite) TestDeleteRepost() {
 		req.SetPathValue("user_id", userID)
 		req.SetPathValue("post_id", postID)
 
-		DeleteRepost(rr, req, s.db)
+		DeleteRepost(rr, req, s.db, &s.mu, &s.userChannels)
 
 		if rr.Code != test.expectedCode {
 			s.T().Errorf("%s: wrong code returned; expected %d, but got %d", test.name, test.expectedCode, rr.Code)
@@ -486,6 +486,11 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 			userID:        user5ID,
 			expectedCount: 2,
 		},
+		{
+			name:          "get posts and reposts deleted during timeline access",
+			userID:        user5ID,
+			expectedCount: 1,
+		},
 	}
 
 	for _, test := range tests {
@@ -518,6 +523,10 @@ func (s *HandlersTestSuite) TestGetReverseChronologicalHomeTimeline() {
 		}
 		if test.name == "get a target user post and a repost notification during timeline access" {
 			s.newTestRepost(user5ID, post2ID)
+		}
+		if test.name == "get posts and reposts deleted during timeline access" {
+			time.Sleep(100 * time.Millisecond)
+			s.newTestDeleteRepost(user5ID, post2ID)
 		}
 
 		wg.Wait()
@@ -553,6 +562,15 @@ func (s *HandlersTestSuite) newTestRepost(userID, postID string) {
 	)
 	rr := httptest.NewRecorder()
 	CreateRepost(rr, req, s.db, &s.mu, &s.userChannels)
+}
+
+func (s *HandlersTestSuite) newTestDeleteRepost(userID string, postID string) {
+	req := httptest.NewRequest("DELETE", "/api/posts/reposts/{user_id}/{post_id}", nil)
+	req.SetPathValue("userID", userID)
+	req.SetPathValue("postID", postID)
+
+	rr := httptest.NewRecorder()
+	DeleteRepost(rr, req, s.db, &s.mu, &s.userChannels)
 }
 
 func (s *HandlersTestSuite) newTestUser(body string) string {

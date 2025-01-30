@@ -5,6 +5,7 @@ const (
 	PostCreated      = "PostCreated"
 	PostDeleted      = "PostDeleted"
 	RepostCreated    = "RepostCreated"
+	RepostDeleted    = "RepostDeleted"
 )
 
 type TimelineEvent struct {
