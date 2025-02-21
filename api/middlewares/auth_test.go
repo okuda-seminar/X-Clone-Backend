@@ -9,16 +9,87 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestJWTMiddleware tests the JWTMiddleware function by verifying
-// that a valid JWT token allows access, an invalid token denies access,
-// and requests with missing or invalid Authorization headers are rejected.
-func TestJWTMiddleware(t *testing.T) {
+// TestJWTMiddleware_TokenValidation verifies the basic functionality of JWTMiddleware.
+// It checks if a valid JWT token grants access, an invalid token denies access,
+// and requests missing the Authorization header are rejected.
+func TestJWTMiddleware_TokenValidation(t *testing.T) {
 	secretKey := "test_secret_key"
 	authService := services.NewAuthService(secretKey)
 
+	// Generate a valid JWT token
 	tokenString, _ := authService.GenerateJWT(uuid.New(), "test_user")
 
+	// Create a test handler to verify JWT claims in the request context
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := r.Context().Value(UserContextKey).(*services.UserClaims)
+		if !ok {
+			t.Error("Failed to retrieve claims from context")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if claims.Username != "test_user" {
+			t.Errorf("Expected username 'test_user', got '%v'", claims.Username)
+		}
+	})
+
+	// Apply the JWT middleware
+	handlerToTest := JWTMiddleware(authService)(testHandler)
+
+	tests := map[string]struct {
+		token          string
+		expectedStatus int
+	}{
+		"Valid JWT Token": {
+			token:          "Bearer " + tokenString,
+			expectedStatus: http.StatusOK,
+		},
+		"Invalid JWT Token": {
+			token:          "Bearer invalidtoken",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		"Missing Authorization Header": {
+			token:          "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/", nil)
+			if tt.token != "" {
+				req.Header.Set("Authorization", tt.token)
+			}
+			rr := httptest.NewRecorder()
+
+			handlerToTest.ServeHTTP(rr, req)
+
+			if status := rr.Code; status != tt.expectedStatus {
+				t.Errorf("Handler returned wrong status code for %v: got %v want %v", name, status, tt.expectedStatus)
+			}
+		})
+	}
+}
+
+// TestJWTMiddleware_Endpoints verifies the behavior of JWTMiddleware for different API endpoints.
+// It tests whether authentication is enforced correctly for protected routes
+// and ensures public routes can be accessed without a JWT token.
+func TestJWTMiddleware_Endpoints(t *testing.T) {
+	secretKey := "test_secret_key"
+	authService := services.NewAuthService(secretKey)
+
+	// Generate a valid JWT token
+	tokenString, _ := authService.GenerateJWT(uuid.New(), "test_user")
+
+	// Create a new multiplexer with different API endpoints
+	mux := http.NewServeMux()
+
+	// Public endpoint that does not require authentication
+	mux.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Protected endpoint that requires authentication
+	mux.HandleFunc("/api/protected", func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := r.Context().Value(UserContextKey).(*services.UserClaims)
 		if !ok {
 			t.Error("Failed to retrieve claims from context")
@@ -31,44 +102,56 @@ func TestJWTMiddleware(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Success"))
 	})
 
-	handlerToTest := JWTMiddleware(authService)(testHandler)
+	// Apply the JWT middleware
+	handlerToTest := JWTMiddleware(authService)(mux)
 
-	// Test case 1: Valid token
-	req1 := httptest.NewRequest("GET", "/", nil)
-	req1.Header.Set("Authorization", "Bearer "+tokenString)
-	rr1 := httptest.NewRecorder()
-
-	handlerToTest.ServeHTTP(rr1, req1)
-
-	if status := rr1.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	tests := map[string]struct {
+		method         string
+		url            string
+		token          string
+		expectedStatus int
+	}{
+		"Public Endpoint - Without JWT": {
+			method:         "POST",
+			url:            "/api/users",
+			token:          "",
+			expectedStatus: http.StatusOK,
+		},
+		"Protected Endpoint - Valid JWT": {
+			method:         "GET",
+			url:            "/api/protected",
+			token:          "Bearer " + tokenString,
+			expectedStatus: http.StatusOK,
+		},
+		"Protected Endpoint - Without JWT": {
+			method:         "GET",
+			url:            "/api/protected",
+			token:          "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		"Protected Endpoint - Invalid JWT": {
+			method:         "GET",
+			url:            "/api/protected",
+			token:          "Bearer invalid_token",
+			expectedStatus: http.StatusUnauthorized,
+		},
 	}
 
-	if rr1.Body.String() != "Success" {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr1.Body.String(), "Success")
-	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.url, nil)
+			if tt.token != "" {
+				req.Header.Set("Authorization", tt.token)
+			}
+			rr := httptest.NewRecorder()
 
-	// Test case 2: Invalid token
-	req2 := httptest.NewRequest("GET", "/", nil)
-	req2.Header.Set("Authorization", "Bearer invalidtoken")
-	rr2 := httptest.NewRecorder()
+			handlerToTest.ServeHTTP(rr, req)
 
-	handlerToTest.ServeHTTP(rr2, req2)
-
-	if status := rr2.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code for invalid token: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	// Test case 3: Missing Authorization header
-	req3 := httptest.NewRequest("GET", "/", nil)
-	rr3 := httptest.NewRecorder()
-
-	handlerToTest.ServeHTTP(rr3, req3)
-
-	if status := rr3.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code for missing header: got %v want %v", status, http.StatusUnauthorized)
+			if status := rr.Code; status != tt.expectedStatus {
+				t.Errorf("Handler returned wrong status code for %v: got %v want %v", name, status, tt.expectedStatus)
+			}
+		})
 	}
 }
