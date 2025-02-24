@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/ory/dockertest v3.3.5+incompatible
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.22.0
 )
 

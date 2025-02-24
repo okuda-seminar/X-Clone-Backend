@@ -27,7 +27,19 @@ type createFollowshipRequestBody struct {
 // endpoint request body.
 type createRepostRequestBody struct {
 	PostID uuid.UUID `json:"post_id,omitempty"`
-	UserID uuid.UUID `json:"user_id,omitempty"`
+}
+
+// createQuoteRepostRequestBody is the type of the "CreateQuoteRepost"
+// endpoint request body.
+type createQuoteRepostRequestBody struct {
+	PostID uuid.UUID `json:"post_id,omitempty"`
+	Text   string    `json:"text"`
+}
+
+// deleteRepostRequestBody is the type of the "DeleteRepost"
+// endpoint request body.
+type deleteRepostRequestBody struct {
+	RepostID uuid.UUID `json:"repost_id,omitempty"`
 }
 
 // createMutingRequestBody is the type of the "CreateMute"
