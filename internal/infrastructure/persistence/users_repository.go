@@ -119,6 +119,29 @@ func (r *UsersRepository) GetSpecificUser(tx *sql.Tx, userID string) (entities.U
 	return user, err
 }
 
+func (r *UsersRepository) UserByUsername(tx *sql.Tx, username string) (entities.User, error) {
+	query := `SELECT * FROM users WHERE username = $1`
+	var row *sql.Row
+	if tx != nil {
+		row = tx.QueryRow(query, username)
+	} else {
+		row = r.DB.QueryRow(query, username)
+	}
+
+	var user entities.User
+	err := row.Scan(
+		&user.ID,
+		&user.Username,
+		&user.DisplayName,
+		&user.Bio,
+		&user.IsPrivate,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Password,
+	)
+	return user, err
+}
+
 func (r *UsersRepository) LikePost(tx *sql.Tx, userID string, postID uuid.UUID) error {
 	query := "INSERT INTO likes (user_id, post_id) VALUES ($1, $2)"
 

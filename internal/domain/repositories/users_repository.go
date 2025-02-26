@@ -13,6 +13,7 @@ type UsersRepositoryInterface interface {
 	CreateUser(tx *sql.Tx, username, displayName, password string) (entities.User, error)
 	DeleteUser(tx *sql.Tx, userID string) error
 	GetSpecificUser(tx *sql.Tx, userID string) (entities.User, error)
+	UserByUsername(tx *sql.Tx, userName string) (entities.User, error)
 	LikePost(tx *sql.Tx, userID string, postID uuid.UUID) error
 	UnlikePost(tx *sql.Tx, userID string, postID string) error
 	FollowUser(tx *sql.Tx, sourceUserID, targetUserID string) error
