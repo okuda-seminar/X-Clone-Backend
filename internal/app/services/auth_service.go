@@ -103,3 +103,9 @@ func (s *AuthService) ValidatePassword(password string) error {
 	}
 	return nil
 }
+
+// VerifyPassword checks if the given password matches the hashed password
+func (s *AuthService) VerifyPassword(hashedPassword, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
+}
