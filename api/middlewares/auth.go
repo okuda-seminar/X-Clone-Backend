@@ -14,12 +14,26 @@ const (
 	UserContextKey key = iota
 )
 
+var excludedPaths = map[string]struct{}{
+	"POST /api/users": {},
+}
+
+func isExcluded(method, path string) bool {
+	_, exists := excludedPaths[method+" "+path]
+	return exists
+}
+
 // JWTMiddleware is a middleware function that validates JWT tokens.
 // It extracts the token from the Authorization header, validates it,
 // and stores the user claims in the request context for downstream handlers.
 func JWTMiddleware(s *services.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isExcluded(r.Method, r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
