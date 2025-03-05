@@ -93,7 +93,14 @@ func main() {
 		fmt.Fprintf(w, "Notifications\n")
 	})
 
-	handler := middlewares.CORS(openapi.HandlerFromMux(&server, mux))
+	handler := openapi.HandlerWithOptions(&server, openapi.StdHTTPServerOptions{
+		BaseRouter: mux,
+		Middlewares: []openapi.MiddlewareFunc{
+			middlewares.CORS,
+			middlewares.JWTMiddleware(authService),
+		},
+	})
+
 	s := http.Server{
 		Handler: handler,
 		Addr:    fmt.Sprintf(":%d", port),
